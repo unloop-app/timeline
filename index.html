@@ -2884,6 +2884,8 @@ body.br-mode .br-control-indicator:hover {
     box-shadow: 0 24px 80px rgba(5, 18, 28, 0.28);
     -webkit-backdrop-filter: blur(26px) saturate(1.05);
     backdrop-filter: blur(26px) saturate(1.05);
+    transform: translate(0px, 0px);
+    will-change: transform;
 }
 
 #todoOverviewModal .modal-content::before {
@@ -2908,6 +2910,12 @@ body.br-mode .br-control-indicator:hover {
     gap: 16px;
     padding-right: 52px;
     margin-bottom: 16px;
+    cursor: grab;
+    user-select: none;
+}
+
+#todoOverviewModal .modal-content.is-dragging .todo-overview-header {
+    cursor: grabbing;
 }
 
 .todo-overview-heading small {
@@ -2957,6 +2965,10 @@ body.br-mode .br-control-indicator:hover {
     color: rgba(238,244,248,0.84);
     font-size: 12px;
     line-height: 1.45;
+}
+
+.todo-overview-hint.hidden {
+    display: none;
 }
 
 .todo-overview-scroll {
@@ -3014,6 +3026,19 @@ body.br-mode .br-control-indicator:hover {
     transition: background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+.todo-overview-project-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.todo-overview-project-row {
+    display: flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 2px 2px 0;
+}
+
 .todo-overview-group-list.drop-target {
     background: rgba(255,255,255,0.08);
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.24);
@@ -3066,13 +3091,6 @@ body.br-mode .br-control-indicator:hover {
 
 .todo-overview-card.drop-after {
     box-shadow: inset 0 -2px 0 rgba(16,20,23,0.72), 0 12px 28px rgba(3, 12, 18, 0.18);
-}
-
-.todo-overview-card-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
 }
 
 .todo-overview-project-btn {
@@ -3130,10 +3148,14 @@ body.br-mode .br-control-indicator:hover {
     border-radius: 10px;
     background: rgba(255,255,255,0.74);
     color: #101417;
-    padding: 7px 8px;
+    padding: 0;
+    margin: 0;
     font-size: 14px;
     line-height: 1.4;
     outline: none;
+    resize: none;
+    overflow-y: auto;
+    field-sizing: content;
 }
 
 .todo-overview-input:focus {
@@ -4936,6 +4958,13 @@ let todoOverviewState = {
     dragItem: null,
     dragMode: 'move',
     ignoreClickUntil: 0,
+    modalOffsetX: 0,
+    modalOffsetY: 0,
+    modalPointerId: null,
+    modalDragStartX: 0,
+    modalDragStartY: 0,
+    modalStartX: 0,
+    modalStartY: 0,
     retainedDatesByUser: new Map()
 };
 // Normalizador (remove acentos, espaços e deixa minúsculo) para chaves de categorias
@@ -14518,12 +14547,97 @@ function ensureTodoOverviewModal() {
                     <span class="todo-overview-range" id="todoOverviewRangeLabel">1 semana atrás até o futuro</span>
                 </div>
             </div>
-            <div class="todo-overview-hint" id="todoOverviewHint">Arraste apenas entre datas já existentes. Clique no texto para editar. Use Ctrl ao arrastar para duplicar.</div>
+            <div class="todo-overview-hint hidden" id="todoOverviewHint"></div>
             <div class="todo-overview-scroll" id="todoOverviewList"></div>
         </div>
     `;
     document.body.appendChild(modal);
     return modal;
+}
+
+function setTodoOverviewHint(message = '') {
+    const hint = document.getElementById('todoOverviewHint');
+    if (!hint) return;
+    const text = String(message || '').trim();
+    hint.textContent = text;
+    hint.classList.toggle('hidden', !text);
+}
+
+function clampTodoOverviewModalOffsets(offsetX = 0, offsetY = 0) {
+    const modalContent = document.querySelector('#todoOverviewModal .modal-content');
+    if (!modalContent) {
+        return { x: offsetX, y: offsetY };
+    }
+
+    const width = modalContent.offsetWidth || 0;
+    const height = modalContent.offsetHeight || 0;
+    const margin = 16;
+    const maxX = Math.max(0, ((window.innerWidth - width) / 2) - margin);
+    const maxY = Math.max(0, ((window.innerHeight - height) / 2) - margin);
+
+    return {
+        x: Math.max(-maxX, Math.min(maxX, offsetX)),
+        y: Math.max(-maxY, Math.min(maxY, offsetY))
+    };
+}
+
+function applyTodoOverviewModalPosition() {
+    const modalContent = document.querySelector('#todoOverviewModal .modal-content');
+    if (!modalContent) return;
+    const nextPosition = clampTodoOverviewModalOffsets(todoOverviewState.modalOffsetX, todoOverviewState.modalOffsetY);
+    todoOverviewState.modalOffsetX = nextPosition.x;
+    todoOverviewState.modalOffsetY = nextPosition.y;
+    modalContent.style.transform = `translate(${nextPosition.x}px, ${nextPosition.y}px)`;
+}
+
+function beginTodoOverviewModalDrag(event) {
+    const modalContent = document.querySelector('#todoOverviewModal .modal-content');
+    if (!modalContent) return;
+    if (event.button !== 0) return;
+    if (event.target?.closest && event.target.closest('button, input, textarea, .todo-overview-scroll')) return;
+
+    todoOverviewState.modalPointerId = event.pointerId;
+    todoOverviewState.modalDragStartX = event.clientX;
+    todoOverviewState.modalDragStartY = event.clientY;
+    todoOverviewState.modalStartX = todoOverviewState.modalOffsetX;
+    todoOverviewState.modalStartY = todoOverviewState.modalOffsetY;
+    modalContent.classList.add('is-dragging');
+    modalContent.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+}
+
+function updateTodoOverviewModalDrag(event) {
+    if (todoOverviewState.modalPointerId !== event.pointerId) return;
+    const deltaX = event.clientX - todoOverviewState.modalDragStartX;
+    const deltaY = event.clientY - todoOverviewState.modalDragStartY;
+    todoOverviewState.modalOffsetX = todoOverviewState.modalStartX + deltaX;
+    todoOverviewState.modalOffsetY = todoOverviewState.modalStartY + deltaY;
+    applyTodoOverviewModalPosition();
+}
+
+function endTodoOverviewModalDrag(event) {
+    if (todoOverviewState.modalPointerId !== event.pointerId) return;
+    const modalContent = document.querySelector('#todoOverviewModal .modal-content');
+    todoOverviewState.modalPointerId = null;
+    if (modalContent) {
+        modalContent.classList.remove('is-dragging');
+        modalContent.releasePointerCapture?.(event.pointerId);
+    }
+}
+
+function createTodoOverviewProjectButton(projectName, dateColumnIndex = null) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'todo-overview-project-btn';
+    button.textContent = getTodoDisplayProjectName(projectName);
+    button.title = `Abrir To Do do projeto ${projectName}`;
+    button.style.setProperty('--todo-overview-color', normalizeHexColorInput(getTodoProjectAccentColor(projectName) || TODO_DEFAULT_COLOR) || TODO_DEFAULT_COLOR);
+    button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        closeTodoOverviewModal();
+        openTodoModal(projectName, Number.isInteger(dateColumnIndex) ? { dateColumnIndex } : {});
+    });
+    return button;
 }
 
 function ensureTodoOverviewButtons() {
@@ -14589,11 +14703,11 @@ async function refreshTodoOverviewIdentity(interactive = false) {
     const hint = document.getElementById('todoOverviewHint');
     if (hint) {
         if (!todoOverviewState.userKey) {
-            hint.textContent = 'Faça login no Google para usar a lista geral de To Dos.';
+            setTodoOverviewHint('Faça login no Google para usar a lista geral de To Dos.');
         } else if (!todoOverviewState.hasSheets) {
-            hint.textContent = `Não encontrei abas TODO - ${todoOverviewState.userKey} - 1 ou TODO - ${todoOverviewState.userKey} - 2.`;
+            setTodoOverviewHint(`Não encontrei abas TODO - ${todoOverviewState.userKey} - 1 ou TODO - ${todoOverviewState.userKey} - 2.`);
         } else {
-            hint.textContent = 'Arraste apenas entre datas já existentes. Clique no texto para editar. Use Ctrl ao arrastar para duplicar.';
+            setTodoOverviewHint('');
         }
     }
 
@@ -14824,11 +14938,15 @@ function openTodoOverviewInlineEditor(card, item) {
     todoOverviewState.editingId = item.id;
     card.classList.add('is-editing');
 
-    const input = document.createElement('input');
-    input.type = 'text';
+    const input = document.createElement('textarea');
     input.className = 'todo-overview-input';
     input.value = currentText;
     input.setAttribute('aria-label', `Editar To Do de ${item.projectName}`);
+    const textHeight = Math.max(22, Math.ceil(textLabel.getBoundingClientRect().height));
+    input.rows = 1;
+    input.style.height = `${textHeight}px`;
+    input.style.minHeight = `${textHeight}px`;
+    input.style.maxHeight = `${textHeight}px`;
     textLabel.replaceWith(input);
     input.focus();
     input.select();
@@ -14857,7 +14975,7 @@ function openTodoOverviewInlineEditor(card, item) {
     };
 
     input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
             finish(true);
         } else if (event.key === 'Escape') {
@@ -14987,28 +15105,6 @@ function createTodoOverviewCard(item, dateValue) {
     card.style.setProperty('--todo-overview-bg', hexToRgba(projectColor, 0.22));
     card.style.setProperty('--todo-overview-border', hexToRgba(projectColor, 0.42));
 
-    const head = document.createElement('div');
-    head.className = 'todo-overview-card-head';
-
-    const projectBtn = document.createElement('button');
-    projectBtn.type = 'button';
-    projectBtn.className = 'todo-overview-project-btn';
-    projectBtn.textContent = getTodoDisplayProjectName(item.projectName);
-    projectBtn.title = `Abrir To Do do projeto ${item.projectName}`;
-    projectBtn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        closeTodoOverviewModal();
-        openTodoModal(item.projectName, { dateColumnIndex: item.col });
-    });
-
-    const dateChip = document.createElement('span');
-    dateChip.className = 'todo-overview-date-chip';
-    dateChip.textContent = formatTodoOverviewCompactDate(dateValue);
-
-    head.appendChild(projectBtn);
-    head.appendChild(dateChip);
-    card.appendChild(head);
-
     const main = document.createElement('div');
     main.className = 'todo-overview-main';
 
@@ -15065,6 +15161,7 @@ function renderTodoOverviewModal() {
 
     const { groups, itemCount } = collectTodoOverviewGroups(userKey);
     updateTodoOverviewSummary(groups.length, itemCount);
+    setTodoOverviewHint(todoOverviewState.hasSheets ? '' : `Não encontrei abas TODO - ${userKey} - 1 ou TODO - ${userKey} - 2.`);
 
     if (groups.length === 0) {
         list.innerHTML = '<div class="todo-empty">Nenhum To Do entre uma semana atrás e as datas futuras da timeline.</div>';
@@ -15107,8 +15204,24 @@ function renderTodoOverviewModal() {
                 : 'Sem To Dos nesta data.';
             groupList.appendChild(empty);
         } else {
+            let currentProjectName = '';
+            let currentProjectGroup = null;
+
             group.items.forEach((item) => {
-                groupList.appendChild(createTodoOverviewCard(item, group.dateValue));
+                if (item.projectName !== currentProjectName) {
+                    currentProjectName = item.projectName;
+                    currentProjectGroup = document.createElement('div');
+                    currentProjectGroup.className = 'todo-overview-project-group';
+
+                    const projectRow = document.createElement('div');
+                    projectRow.className = 'todo-overview-project-row';
+                    projectRow.appendChild(createTodoOverviewProjectButton(item.projectName, item.col));
+
+                    currentProjectGroup.appendChild(projectRow);
+                    groupList.appendChild(currentProjectGroup);
+                }
+
+                currentProjectGroup.appendChild(createTodoOverviewCard(item, group.dateValue));
             });
         }
 
@@ -15135,6 +15248,7 @@ async function openTodoOverviewModal() {
         console.error('Falha ao identificar usuário da lista geral de To Dos:', error);
         showToast(error.message || 'Falha ao carregar a lista geral de To Dos.', 'error', 2800);
     }
+    applyTodoOverviewModalPosition();
     renderTodoOverviewModal();
 }
 
@@ -15174,6 +15288,16 @@ function setupTodoOverviewListeners() {
             });
         });
     }
+
+    const modalContent = modal.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.addEventListener('pointerdown', beginTodoOverviewModalDrag);
+        modalContent.addEventListener('pointermove', updateTodoOverviewModalDrag);
+        modalContent.addEventListener('pointerup', endTodoOverviewModalDrag);
+        modalContent.addEventListener('pointercancel', endTodoOverviewModalDrag);
+    }
+
+    window.addEventListener('resize', applyTodoOverviewModalPosition);
 
     modal.addEventListener('click', (event) => {
         if (event.target === modal) {
