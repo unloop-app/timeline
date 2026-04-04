@@ -2928,13 +2928,21 @@ body.br-mode .br-control-indicator:hover {
 .todo-overview-heading {
     text-align: left;
     align-self: flex-start;
+    margin-right: auto;
 }
 
-.todo-overview-heading h2 {
+#todoOverviewModal .todo-overview-heading small {
+    text-align: left;
+    margin-left: 0;
+}
+
+#todoOverviewModal .todo-overview-heading h2 {
     font-size: clamp(24px, 4vw, 35px);
     line-height: 1.05;
     color: #f7fbff;
     text-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    text-align: left;
+    margin-left: 0;
 }
 
 .todo-overview-summary {
@@ -3054,8 +3062,8 @@ body.br-mode .br-control-indicator:hover {
 .todo-overview-project-row {
     display: flex;
     align-items: center;
-    min-height: 24px;
-    padding: 2px 2px 0;
+    min-height: 22px;
+    padding: 1px 2px 0;
 }
 
 .todo-overview-group-list.drop-target {
@@ -3116,31 +3124,34 @@ body.br-mode .br-control-indicator:hover {
     box-shadow: inset 0 -2px 0 rgba(16,20,23,0.72), 0 12px 28px rgba(3, 12, 18, 0.18);
 }
 
-.todo-overview-project-btn {
+#todoOverviewModal .todo-overview-project-btn {
     border: 1px solid var(--todo-overview-color, #36586f);
-    background: var(--todo-overview-project-bg, rgba(54, 88, 111, 0.22));
-    padding: 5px;
+    background-color: var(--todo-overview-project-bg, rgba(54, 88, 111, 0.22));
+    background-image: none;
+    padding: 6px;
     margin: 0;
     display: inline-flex;
     align-items: center;
     justify-content: flex-start;
     box-sizing: border-box;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
+    line-height: 1;
     letter-spacing: 0.04em;
     color: var(--todo-overview-project-text, #101417);
     cursor: pointer;
     text-align: left;
+    white-space: nowrap;
     border-radius: 7px;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.24);
 }
 
-.todo-overview-project-btn:hover {
+#todoOverviewModal .todo-overview-project-btn:hover {
     text-decoration: underline;
 }
 
-.todo-overview-project-btn.is-active {
-    background: var(--todo-overview-project-bg-strong, rgba(54, 88, 111, 0.32));
+#todoOverviewModal .todo-overview-project-btn.is-active {
+    background-color: var(--todo-overview-project-bg-strong, rgba(54, 88, 111, 0.32));
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.48);
 }
 
@@ -14626,6 +14637,47 @@ function applyTodoOverviewModalPosition() {
     modalContent.style.transform = `translate(${nextPosition.x}px, ${nextPosition.y}px)`;
 }
 
+function updateTodoOverviewModalWidth(options = {}) {
+    const modalContent = document.querySelector('#todoOverviewModal .modal-content');
+    if (!modalContent) return;
+
+    const header = modalContent.querySelector('.todo-overview-header');
+    const hint = modalContent.querySelector('.todo-overview-hint');
+    const list = document.getElementById('todoOverviewList');
+    const previousWidth = modalContent.offsetWidth || 0;
+    const margin = 16;
+    const previousMaxX = Math.max(0, ((window.innerWidth - previousWidth) / 2) - margin);
+    const wasRightAligned = Math.abs(todoOverviewState.modalOffsetX - previousMaxX) <= 2;
+    const viewportPadding = window.innerWidth <= 640 ? 18 : 32;
+    const maxWidth = Math.max(280, window.innerWidth - viewportPadding);
+
+    if (window.innerWidth <= 640) {
+        modalContent.style.width = `${maxWidth}px`;
+        modalContent.style.maxWidth = `${maxWidth}px`;
+    } else {
+        const computedStyles = window.getComputedStyle(modalContent);
+        const paddingX = (parseFloat(computedStyles.paddingLeft) || 0) + (parseFloat(computedStyles.paddingRight) || 0);
+        const closeButtonAllowance = 44;
+        const headerWidth = header ? header.scrollWidth : 0;
+        const hintWidth = hint && !hint.classList.contains('hidden') ? hint.scrollWidth : 0;
+        const listWidth = list
+            ? Math.max(list.scrollWidth || 0, Math.ceil(list.getBoundingClientRect().width || 0))
+            : 0;
+        const targetWidth = Math.min(
+            780,
+            Math.max(360, Math.ceil(Math.max(headerWidth, hintWidth, listWidth) + paddingX + closeButtonAllowance))
+        );
+
+        modalContent.style.width = `${Math.min(maxWidth, targetWidth)}px`;
+        modalContent.style.maxWidth = `${Math.min(780, maxWidth)}px`;
+    }
+
+    if (options.realignRight || (options.preserveRightAlign && wasRightAligned)) {
+        alignTodoOverviewModalToRight();
+    }
+    applyTodoOverviewModalPosition();
+}
+
 function beginTodoOverviewModalDrag(event) {
     const modalContent = document.querySelector('#todoOverviewModal .modal-content');
     if (!modalContent) return;
@@ -15253,12 +15305,14 @@ function renderTodoOverviewModal() {
     if (!userKey) {
         list.innerHTML = '<div class="todo-empty">Faça login no Google para visualizar a lista geral de To Dos.</div>';
         updateTodoOverviewSummary({ total: 0, done: 0, pending: 0 });
+        updateTodoOverviewModalWidth({ preserveRightAlign: true });
         return;
     }
 
     if (!todoOverviewState.hasSheets) {
         list.innerHTML = `<div class="todo-empty">Não encontrei abas TODO - ${userKey} - 1 ou TODO - ${userKey} - 2.</div>`;
         updateTodoOverviewSummary({ total: 0, done: 0, pending: 0 });
+        updateTodoOverviewModalWidth({ preserveRightAlign: true });
         return;
     }
 
@@ -15281,6 +15335,7 @@ function renderTodoOverviewModal() {
 
     if (filteredGroups.length === 0) {
         list.innerHTML = '<div class="todo-empty">Nenhum To Do entre uma semana atrás e as datas futuras da timeline.</div>';
+        updateTodoOverviewModalWidth({ preserveRightAlign: true });
         return;
     }
 
@@ -15334,6 +15389,8 @@ function renderTodoOverviewModal() {
         groupEl.appendChild(groupList);
         list.appendChild(groupEl);
     });
+
+    updateTodoOverviewModalWidth({ preserveRightAlign: true });
 }
 
 function refreshTodoOverviewIfOpen() {
@@ -15358,6 +15415,7 @@ async function openTodoOverviewModal() {
     alignTodoOverviewModalToRight();
     applyTodoOverviewModalPosition();
     renderTodoOverviewModal();
+    updateTodoOverviewModalWidth({ realignRight: true });
 }
 
 function closeTodoOverviewModal() {
@@ -15405,7 +15463,7 @@ function setupTodoOverviewListeners() {
         modalContent.addEventListener('pointercancel', endTodoOverviewModalDrag);
     }
 
-    window.addEventListener('resize', applyTodoOverviewModalPosition);
+    window.addEventListener('resize', () => updateTodoOverviewModalWidth({ preserveRightAlign: true }));
 
     modal.addEventListener('click', (event) => {
         if (event.target === modal) {
