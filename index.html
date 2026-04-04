@@ -2927,6 +2927,11 @@ body.br-mode .br-control-indicator:hover {
     margin-bottom: 6px;
 }
 
+.todo-overview-heading {
+    text-align: left;
+    align-self: flex-start;
+}
+
 .todo-overview-heading h2 {
     font-size: clamp(24px, 4vw, 35px);
     line-height: 1.05;
@@ -2947,7 +2952,7 @@ body.br-mode .br-control-indicator:hover {
     display: inline-flex;
     align-items: center;
     padding: 7px 12px;
-    border-radius: 999px;
+    border-radius: 7px;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -2969,7 +2974,7 @@ body.br-mode .br-control-indicator:hover {
 .todo-overview-hint {
     margin-bottom: 14px;
     padding: 12px 14px;
-    border-radius: 16px;
+    border-radius: 7px;
     background: rgba(12, 24, 34, 0.18);
     border: 1px solid rgba(255,255,255,0.12);
     color: rgba(238,244,248,0.84);
@@ -3002,7 +3007,7 @@ body.br-mode .br-control-indicator:hover {
     flex-direction: column;
     gap: 9px;
     padding: 12px;
-    border-radius: 20px;
+    border-radius: 7px;
     background: rgba(10, 22, 30, 0.18);
     border: 1px solid rgba(255,255,255,0.12);
 }
@@ -3038,7 +3043,7 @@ body.br-mode .br-control-indicator:hover {
     gap: 8px;
     min-height: 44px;
     padding: 2px;
-    border-radius: 16px;
+    border-radius: 7px;
     transition: background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -3066,7 +3071,7 @@ body.br-mode .br-control-indicator:hover {
     justify-content: center;
     min-height: 54px;
     padding: 12px;
-    border-radius: 14px;
+    border-radius: 7px;
     border: 1px dashed rgba(255,255,255,0.18);
     background: rgba(255,255,255,0.04);
     color: rgba(238,244,248,0.66);
@@ -3079,8 +3084,8 @@ body.br-mode .br-control-indicator:hover {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px 12px;
-    border-radius: 12px;
+    padding: 1px 5px;
+    border-radius: 7px;
     background: var(--todo-overview-bg, rgba(255,255,255,0.82));
     border: 1px solid var(--todo-overview-border, rgba(0,0,0,0.12));
     box-shadow: 0 10px 24px rgba(3, 12, 18, 0.12);
@@ -3094,7 +3099,7 @@ body.br-mode .br-control-indicator:hover {
 }
 
 .todo-overview-card.is-done {
-    padding: 1px 7px;
+    padding: 1px 5px;
 }
 
 .todo-overview-card.is-editing {
@@ -3115,16 +3120,20 @@ body.br-mode .br-control-indicator:hover {
 
 .todo-overview-project-btn {
     border: 1px solid var(--todo-overview-color, #36586f);
-    background: var(--todo-overview-project-bg, rgba(54, 88, 111, 0.16));
+    background: var(--todo-overview-project-bg, rgba(54, 88, 111, 0.22));
     padding: 5px;
     margin: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.04em;
-    color: var(--todo-overview-color, #36586f);
+    color: var(--todo-overview-project-text, #101417);
     cursor: pointer;
     text-align: left;
-    border-radius: 12px;
+    border-radius: 7px;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.24);
 }
 
@@ -3133,8 +3142,8 @@ body.br-mode .br-control-indicator:hover {
 }
 
 .todo-overview-project-btn.is-active {
-    background: var(--todo-overview-project-bg-strong, rgba(54, 88, 111, 0.28));
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+    background: var(--todo-overview-project-bg-strong, rgba(54, 88, 111, 0.32));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.48);
 }
 
 .todo-overview-date-chip {
@@ -3172,7 +3181,7 @@ body.br-mode .br-control-indicator:hover {
 .todo-overview-input {
     width: 100%;
     border: 1px solid rgba(16,20,23,0.12);
-    border-radius: 10px;
+    border-radius: 7px;
     background: rgba(255,255,255,0.74);
     color: #101417;
     padding: 0;
@@ -14568,7 +14577,7 @@ function ensureTodoOverviewModal() {
             <div class="todo-overview-header">
                 <div class="todo-overview-heading">
                     <small>Lista Geral</small>
-                    <h2>To Dos por data</h2>
+                    <h2>To do list:</h2>
                 </div>
                 <div class="todo-overview-summary">
                     <span class="todo-overview-pill" id="todoOverviewTotalPill">To Do 0</span>
@@ -14664,8 +14673,9 @@ function createTodoOverviewProjectButton(projectName, dateColumnIndex = null) {
         ? `Desligar filtro do projeto ${projectName}`
         : `Filtrar pelo projeto ${projectName}`;
     button.style.setProperty('--todo-overview-color', projectColor);
-    button.style.setProperty('--todo-overview-project-bg', hexToRgba(projectColor, 0.16));
-    button.style.setProperty('--todo-overview-project-bg-strong', hexToRgba(projectColor, 0.3));
+    button.style.setProperty('--todo-overview-project-bg', hexToRgba(projectColor, 0.32));
+    button.style.setProperty('--todo-overview-project-bg-strong', hexToRgba(projectColor, 0.32));
+    button.style.setProperty('--todo-overview-project-text', getContrastColor(projectColor));
     button.classList.toggle('is-active', todoOverviewState.filterProjectName === projectName);
     button.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -15281,16 +15291,7 @@ function renderTodoOverviewModal() {
         title.className = 'todo-overview-group-title';
         title.textContent = formatTodoDateLabel(group.dateValue);
 
-        const meta = document.createElement('div');
-        meta.className = 'todo-overview-group-meta';
-        if (group.items.length === 0 && group.retainedMoves > 0) {
-            meta.textContent = `Data mantida por ${group.retainedMoves} movimento${group.retainedMoves === 1 ? '' : 's'}`;
-        }
-
         head.appendChild(title);
-        if (meta.textContent) {
-            head.appendChild(meta);
-        }
         groupEl.appendChild(head);
 
         const groupList = document.createElement('div');
@@ -15300,9 +15301,8 @@ function renderTodoOverviewModal() {
         if (group.items.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'todo-overview-empty-date';
-            empty.textContent = group.retainedMoves > 0
-                ? 'Esta data continua visível por até 3 movimentos após ficar vazia.'
-                : 'Sem To Dos nesta data.';
+            empty.textContent = '';
+            empty.setAttribute('aria-hidden', 'true');
             groupList.appendChild(empty);
         } else {
             let currentProjectName = '';
