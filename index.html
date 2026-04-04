@@ -2989,6 +2989,12 @@ body.br-mode .br-control-indicator:hover {
     max-height: calc(100vh - 228px);
     overflow-y: auto;
     padding: 4px 4px 8px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.todo-overview-scroll::-webkit-scrollbar {
+    display: none;
 }
 
 .todo-overview-group {
