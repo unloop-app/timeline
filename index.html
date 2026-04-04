@@ -2512,22 +2512,21 @@ body.br-mode .br-control-indicator:hover {
 
 .todo-close-btn {
     position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 5;
-    width: 34px;
-    height: 34px;
+    top: 10px;
+    right: 10px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     border: 1px solid rgba(255,255,255,0.28);
     background: rgba(20, 31, 42, 0.52);
     color: #ffffff;
-    font-size: 18px;
+    font-size: 8px;
     line-height: 1;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
 }
 
 .todo-close-btn:hover {
@@ -2551,7 +2550,6 @@ body.br-mode .br-control-indicator:hover {
 }
 
 .todo-modal-project small {
-    display: block;
     font-size: 11px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -14663,6 +14661,13 @@ function endTodoOverviewModalDrag(event) {
     }
 }
 
+function getTodoOverviewProjectTextColor(hex = '') {
+    const rgb = hexToRgb(hex || '#999999');
+    if (!rgb || typeof rgb !== 'object') return '#101417';
+    const luminance = ((rgb.r * 299) + (rgb.g * 587) + (rgb.b * 114)) / 1000;
+    return luminance >= 150 ? '#101417' : '#f7fbff';
+}
+
 function createTodoOverviewProjectButton(projectName, dateColumnIndex = null) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -14675,7 +14680,7 @@ function createTodoOverviewProjectButton(projectName, dateColumnIndex = null) {
     button.style.setProperty('--todo-overview-color', projectColor);
     button.style.setProperty('--todo-overview-project-bg', hexToRgba(projectColor, 0.32));
     button.style.setProperty('--todo-overview-project-bg-strong', hexToRgba(projectColor, 0.32));
-    button.style.setProperty('--todo-overview-project-text', getContrastColor(projectColor));
+    button.style.setProperty('--todo-overview-project-text', getTodoOverviewProjectTextColor(projectColor));
     button.classList.toggle('is-active', todoOverviewState.filterProjectName === projectName);
     button.addEventListener('click', (event) => {
         event.stopPropagation();
