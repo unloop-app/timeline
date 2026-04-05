@@ -3029,6 +3029,11 @@ body.br-mode .br-control-indicator:hover {
     gap: 12px;
 }
 
+.todo-overview-group-head.is-composer-selectable,
+.todo-overview-group-title.is-composer-selectable {
+    cursor: pointer;
+}
+
 .todo-overview-group-title {
     font-size: 13px;
     font-weight: 800;
@@ -15575,6 +15580,7 @@ function renderTodoOverviewModal() {
     filteredGroups.forEach((group) => {
         const groupEl = document.createElement('section');
         groupEl.className = `todo-overview-group${group.items.length === 0 && group.dateNotes.length === 0 ? ' is-retained' : ''}`;
+        groupEl.dataset.dateKey = group.dateValue;
 
         const head = document.createElement('div');
         head.className = 'todo-overview-group-head';
@@ -15583,8 +15589,45 @@ function renderTodoOverviewModal() {
         title.className = 'todo-overview-group-title';
         title.textContent = formatTodoDateLabel(group.dateValue);
 
+        const handleOverviewComposerDatePick = (event) => {
+            if (typeof window.trySelectTodoOverviewComposerDate !== 'function') return;
+            const switched = window.trySelectTodoOverviewComposerDate(group.dateValue);
+            if (!switched) return;
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        head.addEventListener('click', handleOverviewComposerDatePick);
+        title.addEventListener('click', handleOverviewComposerDatePick);
+        head.addEventListener('mousedown', (event) => {
+            if (event.button !== 0) return;
+            if (typeof window.isTodoOverviewDateComposerActive !== 'function' || !window.isTodoOverviewDateComposerActive()) return;
+            event.preventDefault();
+            event.stopPropagation();
+        });
+        title.addEventListener('mousedown', (event) => {
+            if (event.button !== 0) return;
+            if (typeof window.isTodoOverviewDateComposerActive !== 'function' || !window.isTodoOverviewDateComposerActive()) return;
+            event.preventDefault();
+            event.stopPropagation();
+        });
+
+        if (typeof window.isTodoOverviewDateComposerActive === 'function' && window.isTodoOverviewDateComposerActive()) {
+            head.classList.add('is-composer-selectable');
+            title.classList.add('is-composer-selectable');
+        }
+
         head.appendChild(title);
         groupEl.appendChild(head);
+
+        groupEl.addEventListener('contextmenu', (event) => {
+            if (event.target?.closest && event.target.closest('.todo-overview-card, .todo-overview-checkbox, .todo-overview-input, .todo-overview-project-btn, button, input, textarea')) {
+                return;
+            }
+            if (typeof window.showTodoOverviewDateContextMenu === 'function') {
+                window.showTodoOverviewDateContextMenu(group.dateValue, event);
+            }
+        });
 
         const dateNotesBlock = createTodoOverviewDateNotesBlock(group.dateNotes || []);
         if (dateNotesBlock) {
@@ -15628,6 +15671,9 @@ function renderTodoOverviewModal() {
     });
 
     updateTodoOverviewModalWidth({ preserveRightAlign: true });
+    if (typeof window.syncTodoOverviewComposerPosition === 'function') {
+        window.syncTodoOverviewComposerPosition();
+    }
 }
 
 function refreshTodoOverviewIfOpen() {
@@ -15663,6 +15709,12 @@ function closeTodoOverviewModal() {
     todoOverviewState.dragItem = null;
     todoOverviewState.dragMode = 'move';
     clearTodoOverviewDropHints();
+    if (typeof window.hideTodoOverviewDateContextMenu === 'function') {
+        window.hideTodoOverviewDateContextMenu();
+    }
+    if (typeof window.closeTodoOverviewComposer === 'function') {
+        window.closeTodoOverviewComposer();
+    }
 }
 
 function setupTodoOverviewListeners() {
@@ -17791,6 +17843,7 @@ function getWeatherIcon(weatherCode) {
         dragMode: 'move',
         ignoreClickUntil: 0,
         editingId: '',
+        composerSource: 'calendar',
         composerDateKey: '',
         composerProjectQuery: '',
         composerProjectName: '',
@@ -17820,6 +17873,7 @@ function getWeatherIcon(weatherCode) {
     }
 
     function resetCalendarTodoComposerState() {
+        calendarTodoState.composerSource = 'calendar';
         calendarTodoState.composerDateKey = '';
         calendarTodoState.composerProjectQuery = '';
         calendarTodoState.composerProjectName = '';
@@ -17831,6 +17885,33 @@ function getWeatherIcon(weatherCode) {
         if (!normalized) return null;
         const selector = window.CSS?.escape ? window.CSS.escape(normalized) : normalized.replace(/"/g, '\\"');
         return document.querySelector(`#calGrid .cal-day-cell[data-date-key="${selector}"]`);
+    }
+
+    function getTodoOverviewGroupByDate(dateKey = '') {
+        const normalized = String(dateKey || '').trim();
+        if (!normalized) return null;
+        const selector = window.CSS?.escape ? window.CSS.escape(normalized) : normalized.replace(/"/g, '\\"');
+        return document.querySelector(`#todoOverviewList .todo-overview-group[data-date-key="${selector}"]`);
+    }
+
+    function isOverviewTodoComposerSource() {
+        return calendarTodoState.composerSource === 'overview';
+    }
+
+    function getCalendarTodoComposerAnchorElement() {
+        return isOverviewTodoComposerSource()
+            ? getTodoOverviewGroupByDate(calendarTodoState.composerDateKey)
+            : getCalendarDayCellByDate(calendarTodoState.composerDateKey);
+    }
+
+    function setCalendarTodoComposerDate(dateKey = '') {
+        const normalized = String(dateKey || '').trim();
+        if (!normalized || !getDateColumnByIso(normalized)) {
+            return false;
+        }
+        calendarTodoState.composerDateKey = normalized;
+        renderCalendarTodoComposer();
+        return true;
     }
 
     function ensureCalendarDayContextMenu() {
@@ -17913,7 +17994,7 @@ function getWeatherIcon(weatherCode) {
             return;
         }
 
-        const anchor = getCalendarDayCellByDate(calendarTodoState.composerDateKey);
+        const anchor = getCalendarTodoComposerAnchorElement();
         if (!anchor) {
             closeCalendarTodoComposer();
             return;
@@ -17921,13 +18002,15 @@ function getWeatherIcon(weatherCode) {
 
         const rect = anchor.getBoundingClientRect();
         const margin = 12;
-        const preferredWidth = Math.min(280, Math.max(230, rect.width + 26));
+        const preferredWidth = isOverviewTodoComposerSource()
+            ? Math.min(300, Math.max(236, rect.width - 10))
+            : Math.min(280, Math.max(230, rect.width + 26));
         composer.style.width = `${Math.min(preferredWidth, window.innerWidth - (margin * 2))}px`;
         composer.classList.remove('hidden');
 
         const composerRect = composer.getBoundingClientRect();
-        let left = rect.left + 6;
-        let top = rect.top + 28;
+        let left = isOverviewTodoComposerSource() ? rect.left + 10 : rect.left + 6;
+        let top = isOverviewTodoComposerSource() ? rect.top + 10 : rect.top + 28;
 
         if ((left + composerRect.width) > (window.innerWidth - margin)) {
             left = window.innerWidth - composerRect.width - margin;
@@ -17980,11 +18063,13 @@ function getWeatherIcon(weatherCode) {
         renderCalendarTodoComposer();
     }
 
-    async function openCalendarTodoComposer(dateKey) {
+    async function openCalendarTodoComposer(dateKey, options = {}) {
         hideCalendarDayContextMenu();
+        syncCalendarData();
         const todoReady = await toggleCalendarTodos(true);
         if (!todoReady) return;
 
+        calendarTodoState.composerSource = options?.source === 'overview' ? 'overview' : 'calendar';
         calendarTodoState.composerDateKey = String(dateKey || '').trim();
         calendarTodoState.composerProjectQuery = '';
         calendarTodoState.composerProjectName = '';
@@ -18099,7 +18184,9 @@ function getWeatherIcon(weatherCode) {
 
             const hint = document.createElement('div');
             hint.className = 'cal-todo-composer-hint';
-            hint.textContent = 'Use ↑ ↓ para navegar e Enter para escolher o projeto.';
+            hint.textContent = isOverviewTodoComposerSource()
+                ? 'Use ↑ ↓ e Enter para escolher. Clique em outra data da lista para trocar a data.'
+                : 'Use ↑ ↓ para navegar e Enter para escolher o projeto.';
             composer.appendChild(hint);
 
             composer.classList.remove('hidden');
@@ -18175,7 +18262,9 @@ function getWeatherIcon(weatherCode) {
 
         const hint = document.createElement('div');
         hint.className = 'cal-todo-composer-hint';
-        hint.textContent = 'Enter salva. Esc fecha.';
+        hint.textContent = isOverviewTodoComposerSource()
+            ? 'Enter salva. Esc fecha. Clique em outra data da lista para trocar a data.'
+            : 'Enter salva. Esc fecha.';
         composer.appendChild(hint);
 
         const saveDraft = async () => {
@@ -18217,11 +18306,12 @@ function getWeatherIcon(weatherCode) {
         });
     }
 
-    function showCalendarDayContextMenu(dateKey, event) {
+    function showCalendarDayContextMenu(dateKey, event, options = {}) {
         event.preventDefault();
         event.stopPropagation();
         hideTodoContextMenu();
         closeCalendarTodoComposer();
+        const source = options?.source === 'overview' ? 'overview' : 'calendar';
 
         const menu = ensureCalendarDayContextMenu();
         menu.innerHTML = '';
@@ -18234,7 +18324,7 @@ function getWeatherIcon(weatherCode) {
             event.preventDefault();
             event.stopPropagation();
             setTimeout(() => {
-                openCalendarTodoComposer(dateKey).catch((error) => {
+                openCalendarTodoComposer(dateKey, { source }).catch((error) => {
                     console.error('Falha ao abrir criacao de To Do:', error);
                     showToast(error.message || 'Falha ao abrir criacao de To Do.', 'error', 2800);
                 });
@@ -19319,6 +19409,27 @@ function getWeatherIcon(weatherCode) {
 
     window.CalendarioSetData = setCalendarData;
     window.syncCalendarData = syncCalendarData;
+    window.showTodoOverviewDateContextMenu = function(dateKey, event) {
+        showCalendarDayContextMenu(dateKey, event, { source: 'overview' });
+    };
+    window.isTodoOverviewDateComposerActive = function() {
+        return isOverviewTodoComposerSource() && !!calendarTodoState.composerDateKey && !!calendarTodoComposerEl && !calendarTodoComposerEl.classList.contains('hidden');
+    };
+    window.trySelectTodoOverviewComposerDate = function(dateKey) {
+        if (!window.isTodoOverviewDateComposerActive()) return false;
+        return setCalendarTodoComposerDate(dateKey);
+    };
+    window.closeTodoOverviewComposer = function() {
+        if (isOverviewTodoComposerSource()) {
+            closeCalendarTodoComposer();
+        }
+    };
+    window.hideTodoOverviewDateContextMenu = hideCalendarDayContextMenu;
+    window.syncTodoOverviewComposerPosition = function() {
+        if (window.isTodoOverviewDateComposerActive()) {
+            positionCalendarTodoComposer();
+        }
+    };
     window.refreshOpenCalendarModal = async function() {
         if (!isCalendarModalOpen()) return;
         syncCalendarData();
