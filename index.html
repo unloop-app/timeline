@@ -2076,6 +2076,21 @@ body.br-mode .br-control-indicator:hover {
     transition: background 0.12s;
 }
 
+.cal-day-cell.has-todo-expansion {
+    overflow: visible;
+    z-index: 12;
+    box-shadow: 0 12px 24px rgba(16, 28, 36, 0.16);
+}
+
+.cal-day-cell.has-todo-expansion.expand-up {
+    margin-top: calc(-1 * var(--cal-day-expand-size, 0px));
+    height: calc(100% + var(--cal-day-expand-size, 0px));
+}
+
+.cal-day-cell.has-todo-expansion.expand-down {
+    height: calc(100% + var(--cal-day-expand-size, 0px));
+}
+
 .cal-day-cell.todo-drop-target {
     background: rgba(0,83,220,0.08) !important;
     outline: 1px dashed rgba(0,83,220,0.34);
@@ -2157,6 +2172,10 @@ body.br-mode .br-control-indicator:hover {
     gap: 2px;
     padding: 1px 0;
     overflow: hidden;
+}
+
+.cal-day-cell.has-todo-expansion .cal-slots-wrap {
+    flex: 0 0 auto;
 }
 
 .cal-span-slot {
@@ -17978,6 +17997,8 @@ function getWeatherIcon(weatherCode) {
         composerProjectName: '',
         composerSuggestionIndex: 0
     };
+    const CALENDAR_TODO_EXPAND_THRESHOLD = 6;
+    const CALENDAR_TODO_EXPAND_PADDING = 8;
 
     function getCalendarModal() {
         return document.getElementById('calendarModal');
@@ -19288,6 +19309,40 @@ function getWeatherIcon(weatherCode) {
         return card;
     }
 
+    function applyCalendarTodoDayExpansion(dayCell, cellIndex, todoCount = 0) {
+        if (!dayCell) return;
+
+        dayCell.classList.remove('has-todo-expansion', 'expand-up', 'expand-down');
+        dayCell.style.removeProperty('--cal-day-expand-size');
+
+        if (Number(todoCount || 0) < CALENDAR_TODO_EXPAND_THRESHOLD) return;
+
+        const dayHeader = dayCell.querySelector('.cal-day-header');
+        const slotsWrap = dayCell.querySelector('.cal-slots-wrap');
+        const todoList = dayCell.querySelector('.cal-todo-list');
+        if (!dayHeader || !slotsWrap || !todoList) return;
+
+        const cellStyles = window.getComputedStyle(dayCell);
+        const paddingTop = parseFloat(cellStyles.paddingTop || '0') || 0;
+        const paddingBottom = parseFloat(cellStyles.paddingBottom || '0') || 0;
+        const rowGap = parseFloat(cellStyles.rowGap || cellStyles.gap || '0') || 0;
+        const naturalHeight = Math.ceil(
+            paddingTop
+            + paddingBottom
+            + dayHeader.getBoundingClientRect().height
+            + slotsWrap.scrollHeight
+            + todoList.scrollHeight
+            + (rowGap * 2)
+        );
+        const extraHeight = Math.max(0, naturalHeight - dayCell.clientHeight + CALENDAR_TODO_EXPAND_PADDING);
+
+        if (extraHeight <= 0) return;
+
+        dayCell.style.setProperty('--cal-day-expand-size', `${extraHeight}px`);
+        dayCell.classList.add('has-todo-expansion');
+        dayCell.classList.add(Math.floor(cellIndex / 7) > 0 ? 'expand-up' : 'expand-down');
+    }
+
     function renderCalendar() {
         const modal = getCalendarModal();
         const grid = document.getElementById('calGrid');
@@ -19536,6 +19591,11 @@ function getWeatherIcon(weatherCode) {
             }
 
             grid.appendChild(dayCell);
+
+            if (calendarTodoState.enabled) {
+                const todoCount = Object.values(cellData.todos || {}).reduce((sum, items) => sum + (Array.isArray(items) ? items.length : 0), 0);
+                applyCalendarTodoDayExpansion(dayCell, cellIndex, todoCount);
+            }
         }
 
         if (calendarTodoState.composerDateKey) {
