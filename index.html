@@ -3166,6 +3166,12 @@ textarea.cal-todo-input {
     transition: background-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+.todo-overview-group-list.is-notes-only {
+    gap: 0;
+    min-height: 4px;
+    padding: 0;
+}
+
 .todo-overview-project-group {
     display: flex;
     flex-direction: column;
@@ -3199,7 +3205,7 @@ textarea.cal-todo-input {
 }
 
 .todo-overview-empty-date.is-notes-only {
-    min-height: 18px;
+    min-height: 4px;
     padding: 0;
     border: none;
     background: transparent;
@@ -15756,6 +15762,9 @@ function renderTodoOverviewModal() {
 
         const groupList = document.createElement('div');
         groupList.className = 'todo-overview-group-list';
+        if (group.items.length === 0 && group.dateNotes.length > 0) {
+            groupList.classList.add('is-notes-only');
+        }
         attachTodoOverviewGroupDropHandlers(groupList, group.dateValue);
 
         if (group.items.length === 0) {
