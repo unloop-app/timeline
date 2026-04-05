@@ -2978,6 +2978,7 @@ textarea.cal-todo-input {
     box-shadow: 0 24px 80px rgba(5, 18, 28, 0.28);
     -webkit-backdrop-filter: blur(26px) saturate(1.05);
     backdrop-filter: blur(26px) saturate(1.05);
+    align-items: stretch;
     transform: translate(0px, 0px);
     will-change: transform;
 }
@@ -3001,6 +3002,7 @@ textarea.cal-todo-input {
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
+    width: 100%;
     gap: 10px;
     padding-right: 52px;
     margin-bottom: 14px;
@@ -3033,6 +3035,7 @@ textarea.cal-todo-input {
 }
 
 #todoOverviewModal .todo-overview-heading {
+    width: 100%;
     align-items: flex-start;
     justify-content: flex-start;
     text-align: left !important;
@@ -3302,7 +3305,7 @@ textarea.cal-todo-input {
     justify-content: flex-start;
     box-sizing: border-box;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
     letter-spacing: 0.04em;
     color: var(--todo-overview-project-text, #101417);
@@ -19425,7 +19428,7 @@ function getWeatherIcon(weatherCode) {
             if (checkDate.getDay() === 0) sundayHasData = true;
         }
 
-        grid.style.gridTemplateColumns = `${sundayHasData ? '1fr' : '0.38fr'} 1fr 1fr 1fr 1fr 1fr ${saturdayHasData ? '1fr' : '0.38fr'}`;
+        grid.style.gridTemplateColumns = `${sundayHasData ? '1fr' : '0.5fr'} 1fr 1fr 1fr 1fr 1fr ${saturdayHasData ? '1fr' : '0.5fr'}`;
         grid.style.gridTemplateRows = `auto repeat(${rowCount}, minmax(0, 1fr))`;
 
         const activeProjects = {};
