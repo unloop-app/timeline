@@ -1224,6 +1224,7 @@ body.br-mode .tooltip, body.br-mode .drag-tooltip {
     top: 0;
     left: 0;
     z-index: 1;
+    pointer-events: none;
 }
 #loading-status-text {
     color: white;
@@ -2302,7 +2303,7 @@ body.br-mode .br-control-indicator:hover {
 .cal-day-context-menu,
 .cal-todo-composer-popover {
     position: fixed;
-    z-index: 9600;
+    z-index: 70000;
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.24);
     background: rgba(19, 27, 34, 0.94);
@@ -2317,20 +2318,26 @@ body.br-mode .br-control-indicator:hover {
 }
 
 .cal-day-context-menu {
-    min-width: 170px;
-    padding: 6px;
+    display: flex;
+    align-items: center;
+    width: max-content;
+    min-width: 0;
+    padding: 4px;
 }
 
 .cal-day-context-btn {
-    width: 100%;
+    width: auto;
     border: none;
-    border-radius: 9px;
-    padding: 8px 10px;
-    background: transparent;
+    border-radius: 8px;
+    padding: 5px 8px;
+    background: rgba(255,255,255,0.04);
     color: #f6f9fc !important;
     -webkit-text-fill-color: #f6f9fc !important;
-    font-size: 0.82rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.1;
     text-align: left;
+    white-space: nowrap;
     cursor: pointer;
     transition: background 0.12s ease;
 }
@@ -6216,12 +6223,12 @@ async function requireInitialGoogleLogin() {
         throw new Error('Nao foi possivel montar a tela inicial de login.');
     }
 
-    loadingStatusText.textContent = 'Clique na animacao inicial para entrar com Google.';
+    loadingStatusText.textContent = 'Clique para iniciar.';
     overlay.classList.add('login-clickable');
     overlay.classList.remove('login-pending');
     overlay.setAttribute('tabindex', '0');
     overlay.setAttribute('role', 'button');
-    overlay.setAttribute('aria-label', 'Clique na animacao inicial para entrar com Google');
+    overlay.setAttribute('aria-label', 'Clique para iniciar');
 
     return new Promise((resolve, reject) => {
         let authInFlight = false;
@@ -18379,10 +18386,9 @@ function getWeatherIcon(weatherCode) {
         menu.classList.remove('hidden');
 
         const margin = 10;
-        const width = 176;
-        const height = 52;
-        const left = Math.min(event.clientX, window.innerWidth - width - margin);
-        const top = Math.min(event.clientY, window.innerHeight - height - margin);
+        const menuRect = menu.getBoundingClientRect();
+        const left = Math.min(event.clientX, window.innerWidth - menuRect.width - margin);
+        const top = Math.min(event.clientY, window.innerHeight - menuRect.height - margin);
         menu.style.left = `${Math.max(margin, left)}px`;
         menu.style.top = `${Math.max(margin, top)}px`;
     }
