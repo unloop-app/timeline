@@ -5515,6 +5515,7 @@ let todoOverviewState = {
     modalDragStartY: 0,
     modalStartX: 0,
     modalStartY: 0,
+    todayScrollAnimationFrame: 0,
     retainedDatesByUser: new Map()
 };
 // Normalizador (remove acentos, espaços e deixa minúsculo) para chaves de categorias
@@ -16442,6 +16443,68 @@ function refreshTodoOverviewIfOpen() {
     renderTodoOverviewModal();
 }
 
+function cancelTodoOverviewTodayScrollAnimation() {
+    if (todoOverviewState.todayScrollAnimationFrame) {
+        cancelAnimationFrame(todoOverviewState.todayScrollAnimationFrame);
+        todoOverviewState.todayScrollAnimationFrame = 0;
+    }
+}
+
+function getTodoOverviewTodayScrollTop(list, todayGroup) {
+    if (!list || !todayGroup) return 0;
+    const listRect = list.getBoundingClientRect();
+    const groupRect = todayGroup.getBoundingClientRect();
+    const groupTop = list.scrollTop + (groupRect.top - listRect.top);
+    const centeredTop = groupTop - Math.max(0, (list.clientHeight - todayGroup.offsetHeight) / 2);
+    const maxScrollTop = Math.max(0, list.scrollHeight - list.clientHeight);
+    return Math.max(0, Math.min(maxScrollTop, centeredTop));
+}
+
+function animateTodoOverviewScrollToToday(duration = 2000) {
+    if (!isTodoOverviewOpen()) return;
+    const list = document.getElementById('todoOverviewList');
+    const todayGroup = list?.querySelector('.todo-overview-group.is-today');
+    if (!list || !todayGroup) return;
+
+    cancelTodoOverviewTodayScrollAnimation();
+    const startTop = list.scrollTop;
+    const targetTop = getTodoOverviewTodayScrollTop(list, todayGroup);
+    const distance = targetTop - startTop;
+    if (Math.abs(distance) < 1) return;
+
+    const startedAt = performance.now();
+    const easeInOutCubic = (progress) => progress < 0.5
+        ? 4 * progress * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+    const step = (now) => {
+        if (!isTodoOverviewOpen()) {
+            cancelTodoOverviewTodayScrollAnimation();
+            return;
+        }
+        const progress = Math.min(1, (now - startedAt) / duration);
+        list.scrollTop = startTop + (distance * easeInOutCubic(progress));
+
+        if (progress < 1) {
+            todoOverviewState.todayScrollAnimationFrame = requestAnimationFrame(step);
+            return;
+        }
+        todoOverviewState.todayScrollAnimationFrame = 0;
+        if (typeof window.syncTodoOverviewComposerPosition === 'function') {
+            window.syncTodoOverviewComposerPosition();
+        }
+    };
+
+    todoOverviewState.todayScrollAnimationFrame = requestAnimationFrame(step);
+}
+
+function scheduleTodoOverviewScrollToToday(duration = 2000) {
+    cancelTodoOverviewTodayScrollAnimation();
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => animateTodoOverviewScrollToToday(duration));
+    });
+}
+
 async function openTodoOverviewModal() {
     const modal = ensureTodoOverviewModal();
     const list = document.getElementById('todoOverviewList');
@@ -16460,11 +16523,13 @@ async function openTodoOverviewModal() {
     applyTodoOverviewModalPosition();
     renderTodoOverviewModal();
     updateTodoOverviewModalWidth({ realignRight: true });
+    scheduleTodoOverviewScrollToToday(2000);
 }
 
 function closeTodoOverviewModal() {
     const modal = document.getElementById('todoOverviewModal');
     if (!modal) return;
+    cancelTodoOverviewTodayScrollAnimation();
     modal.classList.add('hidden');
     todoOverviewState.editingId = '';
     todoOverviewState.dragItem = null;
