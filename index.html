@@ -18762,6 +18762,25 @@ function getWeatherIcon(weatherCode) {
         return dateValue.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
+    function getGoogleCalendarMeetUrl(item) {
+        const directMeetUrl = typeof item?.hangoutLink === 'string' ? item.hangoutLink.trim() : '';
+        if (directMeetUrl) return directMeetUrl;
+
+        const entryPoints = Array.isArray(item?.conferenceData?.entryPoints) ? item.conferenceData.entryPoints : [];
+        const videoEntry = entryPoints.find(entry => entry?.entryPointType === 'video' && typeof entry?.uri === 'string' && entry.uri.trim());
+        if (videoEntry) return videoEntry.uri.trim();
+
+        const firstEntry = entryPoints.find(entry => typeof entry?.uri === 'string' && entry.uri.trim());
+        return firstEntry ? firstEntry.uri.trim() : '';
+    }
+
+    function getGoogleCalendarEventUrl(item) {
+        const calendarUrl = typeof item?.htmlLink === 'string' ? item.htmlLink.trim() : '';
+        const meetUrl = getGoogleCalendarMeetUrl(item);
+        const locationUrl = typeof item?.location === 'string' && /^https?:\/\//i.test(item.location.trim()) ? item.location.trim() : '';
+        return calendarUrl || meetUrl || locationUrl;
+    }
+
     function mapGoogleCalendarEvent(item, target) {
         const summary = String(item?.summary || '(sem titulo)').trim();
         const isAllDay = !!item?.start?.date;
@@ -18771,12 +18790,17 @@ function getWeatherIcon(weatherCode) {
         const ownerLabel = target?.label || 'Google';
         const timeLabel = isAllDay ? 'Dia todo' : [startTime, endTime].filter(Boolean).join('-');
         const label = isAllDay ? summary : `${startTime ? `${startTime} ` : ''}${summary}`;
+        const calendarUrl = typeof item?.htmlLink === 'string' ? item.htmlLink.trim() : '';
+        const meetUrl = getGoogleCalendarMeetUrl(item);
+        const eventUrl = getGoogleCalendarEventUrl(item);
 
         return {
             id: item?.id || `${target?.id || 'primary'}-${summary}-${dateKeys.join('-')}`,
             label,
             tooltip: `📅 ${summary}${timeLabel ? ` • ${timeLabel}` : ''} • ${ownerLabel}`,
-            url: typeof item?.htmlLink === 'string' ? item.htmlLink : '',
+            url: eventUrl,
+            calendarUrl,
+            meetUrl,
             type: 'workspace',
             source: 'googleCalendar',
             calendarId: target?.id || 'primary',
@@ -18797,6 +18821,7 @@ function getWeatherIcon(weatherCode) {
                 singleEvents: 'true',
                 orderBy: 'startTime',
                 showDeleted: 'false',
+                conferenceDataVersion: '1',
                 maxResults: '2500'
             });
 
@@ -20122,6 +20147,8 @@ function getWeatherIcon(weatherCode) {
                     type: 'workspace',
                     tooltip: googleEvent.tooltip || googleEvent.label || 'Evento Google',
                     url: googleEvent.url || '',
+                    calendarUrl: googleEvent.calendarUrl || '',
+                    meetUrl: googleEvent.meetUrl || '',
                     source: googleEvent.source || 'googleCalendar',
                     calendarId: googleEvent.calendarId || 'primary'
                 });
@@ -20745,7 +20772,7 @@ function getWeatherIcon(weatherCode) {
                 (cellData.events[projectName] || []).forEach(eventItem => {
                     const emoji = headerChipEmoji[eventItem.type];
                     if (!emoji) return;
-                    const dedupeKey = `${eventItem.type}|${eventItem.label}`;
+                    const dedupeKey = eventItem.id || eventItem.url || `${eventItem.type}|${eventItem.label}`;
                     if (seenHeaderChips[dedupeKey]) return;
                     seenHeaderChips[dedupeKey] = true;
 
@@ -20763,14 +20790,18 @@ function getWeatherIcon(weatherCode) {
                         chip.setAttribute('role', 'link');
                         chip.tabIndex = 0;
                         chip.addEventListener('click', event => {
-                            hideCalendarTooltip();
-                            event.stopPropagation();
-                        });
-                        chip.addEventListener('keydown', event => {
-                            if (event.key !== ' ') return;
                             event.preventDefault();
                             hideCalendarTooltip();
                             openCalendarEventUrl(eventUrl);
+                            event.stopImmediatePropagation();
+                            event.stopPropagation();
+                        });
+                        chip.addEventListener('keydown', event => {
+                            if (event.key !== 'Enter' && event.key !== ' ') return;
+                            event.preventDefault();
+                            hideCalendarTooltip();
+                            openCalendarEventUrl(eventUrl);
+                            event.stopImmediatePropagation();
                             event.stopPropagation();
                         });
                     }
