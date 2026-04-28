@@ -5631,11 +5631,22 @@ function getTodoUserFromSheetName(sheetName = '') {
     return parseTodoSheetDescriptor(sheetName).userKey;
 }
 
+function getKnownSheetNames() {
+    const names = new Set();
+    Object.keys(rawCategorySheets || {}).forEach((sheetName) => {
+        if (sheetName) names.add(sheetName);
+    });
+    Object.keys(sheetMetadataByName || {}).forEach((sheetName) => {
+        if (sheetName) names.add(sheetName);
+    });
+    return Array.from(names);
+}
+
 function getTodoSheetNamesForUser(userName = '') {
     const userKey = normalizeTodoUserKey(userName);
     if (!userKey) return [];
 
-    return Object.keys(rawCategorySheets || {})
+    return getKnownSheetNames()
         .filter((sheetName) => parseTodoSheetDescriptor(sheetName).userKey === userKey)
         .sort((left, right) => {
             const leftInfo = parseTodoSheetDescriptor(left);
@@ -5686,13 +5697,26 @@ async function fetchGoogleUserProfile(interactive = false) {
 async function resolveTodoSheetsForCurrentUser(interactive = false) {
     const profile = await fetchGoogleUserProfile(interactive);
     const userKey = normalizeTodoUserKey(profile?.localPart || '');
-    const sheetNames = getTodoSheetNamesForUser(userKey);
+    let sheetNames = getTodoSheetNamesForUser(userKey);
+    let availableUsers = collectTodoUsers();
+
+    if (availableUsers.length === 0 || (userKey && sheetNames.length === 0)) {
+        try {
+            await fetchSpreadsheetMetadata(false);
+            sheetNames = getTodoSheetNamesForUser(userKey);
+            availableUsers = collectTodoUsers();
+        } catch (error) {
+            console.warn('Nao foi possivel atualizar metadata das abas TODO:', error);
+        }
+    }
 
     return {
         userKey,
         sheetNames,
         profile,
-        hasSheets: sheetNames.length > 0
+        hasSheets: sheetNames.length > 0,
+        availableUsers,
+        hasAnyTodoSheets: availableUsers.length > 0
     };
 }
 
@@ -5730,7 +5754,7 @@ function serializeTodoCellValue(items = []) {
 
 function collectTodoUsers() {
     const users = new Set();
-    Object.keys(rawCategorySheets || {}).forEach((sheetName) => {
+    getKnownSheetNames().forEach((sheetName) => {
         if (!isTodoUserSheet(sheetName)) return;
         const user = getTodoUserFromSheetName(sheetName);
         if (user) users.add(user);
@@ -7129,11 +7153,22 @@ function collectProjectColorChanges(actions = actionHistory) {
 }
 
 async function fetchSpreadsheetMetadata(interactiveAuth = true) {
-    const token = await ensureGoogleAccessToken(interactiveAuth);
-    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets(properties(title,sheetId,gridProperties(rowCount,columnCount)))`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
+    let token = '';
+    if (hasGoogleAccessToken()) {
+        token = googleAccessToken;
+    } else if (interactiveAuth || !API_KEY) {
+        try {
+            token = await ensureGoogleAccessToken(interactiveAuth);
+        } catch (error) {
+            if (!API_KEY) throw error;
+            console.warn('Usando API key para metadata da planilha porque OAuth nao esta disponivel:', error);
         }
+    }
+
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const keyParam = !token && API_KEY ? `&key=${encodeURIComponent(API_KEY)}` : '';
+    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}?fields=sheets(properties(title,sheetId,gridProperties(rowCount,columnCount)))${keyParam}`, {
+        headers
     });
 
     if (!response.ok) {
@@ -18749,12 +18784,8 @@ function getWeatherIcon(weatherCode) {
         closeCalendarTodoComposer();
         hideTodoContextMenu();
 
-        if (!calendarTodoState.enabled) {
-            const todoReady = await toggleCalendarTodos(true);
-            if (!todoReady) return;
-        } else {
-            syncCalendarTodoUserSelection(calendarTodoState.userKey || googleUserProfile.localPart || '');
-        }
+        const todoReady = await toggleCalendarTodos(true);
+        if (!todoReady) return;
 
         renderCalendarTodoUserMenu();
         positionCalendarTodoUserMenu();
@@ -19154,15 +19185,9 @@ function getWeatherIcon(weatherCode) {
             const identity = await resolveTodoSheetsForCurrentUser(false);
             const userKey = normalizeTodoUserKey(identity?.userKey || googleUserProfile.localPart || '');
 
-            if (!userKey) {
-                showToast('Faca login no Google para visualizar To Do no calendario.', 'warning', 3200);
-                calendarTodoState.enabled = false;
-                updateCalendarTodoToggleButton();
-                return false;
-            }
-
-            if (!identity?.hasSheets) {
-                showToast(`Nao encontrei abas TODO - ${userKey} - 1 ou TODO - ${userKey} - 2.`, 'warning', 3600);
+            const availableUsers = getAvailableCalendarTodoUsers();
+            if (availableUsers.length === 0) {
+                showToast('Nao encontrei nenhuma aba TODO nesta planilha.', 'warning', 3600);
                 calendarTodoState.userKey = userKey;
                 calendarTodoState.enabled = false;
                 updateCalendarTodoToggleButton();
@@ -19170,7 +19195,7 @@ function getWeatherIcon(weatherCode) {
             }
 
             calendarTodoState.userKey = userKey;
-            syncCalendarTodoUserSelection(userKey);
+            syncCalendarTodoUserSelection(userKey || availableUsers[0]);
             calendarTodoState.enabled = true;
             updateCalendarTodoToggleButton();
             if (isCalendarModalOpen()) {
