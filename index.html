@@ -2519,22 +2519,17 @@ textarea.cal-todo-input {
     transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
 }
 
-.cal-todo-user-option:hover,
-.cal-todo-user-option.is-active {
-    background: rgba(88,166,255,0.2);
-    border-color: rgba(88,166,255,0.4);
+.cal-todo-user-option:hover {
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.18);
     transform: translateY(-1px);
 }
 
-.cal-todo-user-target-option {
-    background: rgba(255,255,255,0.045);
-}
-
-.cal-todo-user-target-option:hover,
-.cal-todo-user-target-option.is-active {
+.cal-todo-user-option.is-active {
     background: linear-gradient(90deg, rgba(42,129,255,0.42), rgba(88,166,255,0.18));
     border-color: rgba(88,166,255,0.76);
     box-shadow: 0 0 0 1px rgba(88,166,255,0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+    transform: translateY(-1px);
 }
 
 .cal-todo-user-write-badge {
@@ -2556,6 +2551,7 @@ textarea.cal-todo-input {
     margin: 0;
     flex: 0 0 auto;
     accent-color: #58a6ff;
+    cursor: pointer;
 }
 
 .cal-todo-user-name {
@@ -18896,22 +18892,22 @@ function getWeatherIcon(weatherCode) {
             return;
         }
 
-        const visibilitySection = document.createElement('div');
-        visibilitySection.className = 'cal-todo-user-section';
-
-        const visibilityTitle = document.createElement('div');
-        visibilityTitle.className = 'cal-todo-user-section-title';
-        visibilityTitle.textContent = 'Visualizar no calendário';
-        visibilitySection.appendChild(visibilityTitle);
+        const listTitle = document.createElement('div');
+        listTitle.className = 'cal-todo-user-section-title';
+        listTitle.textContent = 'Checkbox: ver/esconder • Retângulo: destino';
+        menu.appendChild(listTitle);
 
         const list = document.createElement('div');
         list.className = 'cal-todo-user-list';
 
         users.forEach((userKey) => {
             const normalizedUser = normalizeTodoUserKey(userKey || '');
-            const option = document.createElement('label');
+            const option = document.createElement('div');
             option.className = 'cal-todo-user-option';
-            if (selectedSet.has(normalizedUser)) {
+            option.setAttribute('role', 'button');
+            option.tabIndex = 0;
+            option.title = `Criar/copiar To Do em ${formatCalendarTodoUserLabel(normalizedUser)}`;
+            if (normalizedUser === writeUserKey) {
                 option.classList.add('is-active');
             }
 
@@ -18927,6 +18923,13 @@ function getWeatherIcon(weatherCode) {
             option.appendChild(checkbox);
             option.appendChild(name);
 
+            if (normalizedUser === writeUserKey) {
+                const targetBadge = document.createElement('span');
+                targetBadge.className = 'cal-todo-user-write-badge';
+                targetBadge.textContent = 'Destino';
+                option.appendChild(targetBadge);
+            }
+
             if (normalizedUser && normalizedUser === normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '')) {
                 const self = document.createElement('span');
                 self.className = 'cal-todo-user-self';
@@ -18934,6 +18937,28 @@ function getWeatherIcon(weatherCode) {
                 option.appendChild(self);
             }
 
+            const selectWriteUser = () => {
+                if (calendarTodoState.writeUserKey === normalizedUser) return;
+                calendarTodoState.writeUserKey = normalizedUser;
+                calendarTodoState.composerUserKey = normalizedUser;
+                updateCalendarTodoUserButton();
+                renderCalendarTodoUserMenu();
+                positionCalendarTodoUserMenu();
+                if (calendarTodoState.composerDateKey) {
+                    renderCalendarTodoComposer();
+                }
+            };
+
+            option.addEventListener('click', selectWriteUser);
+            option.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                selectWriteUser();
+            });
+
+            checkbox.addEventListener('click', (event) => {
+                event.stopPropagation();
+            });
             checkbox.addEventListener('change', () => {
                 const nextSelection = new Set(getSelectedCalendarTodoUserKeys());
                 if (checkbox.checked) {
@@ -18957,66 +18982,7 @@ function getWeatherIcon(weatherCode) {
             list.appendChild(option);
         });
 
-        visibilitySection.appendChild(list);
-        menu.appendChild(visibilitySection);
-
-        const targetSection = document.createElement('div');
-        targetSection.className = 'cal-todo-user-section';
-
-        const targetTitle = document.createElement('div');
-        targetTitle.className = 'cal-todo-user-section-title';
-        targetTitle.textContent = 'Criar/copiar em';
-        targetSection.appendChild(targetTitle);
-
-        const targetList = document.createElement('div');
-        targetList.className = 'cal-todo-user-list';
-
-        users.forEach((userKey) => {
-            const normalizedUser = normalizeTodoUserKey(userKey || '');
-            const option = document.createElement('label');
-            option.className = 'cal-todo-user-option cal-todo-user-target-option';
-            if (normalizedUser === writeUserKey) {
-                option.classList.add('is-active');
-            }
-
-            const radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = 'calendarTodoWriteUser';
-            radio.value = normalizedUser;
-            radio.checked = normalizedUser === writeUserKey;
-            radio.setAttribute('aria-label', `Criar e copiar To Do em ${formatCalendarTodoUserLabel(normalizedUser)}`);
-
-            const name = document.createElement('span');
-            name.className = 'cal-todo-user-name';
-            name.textContent = formatCalendarTodoUserLabel(normalizedUser);
-
-            option.appendChild(radio);
-            option.appendChild(name);
-
-            if (normalizedUser === writeUserKey) {
-                const targetBadge = document.createElement('span');
-                targetBadge.className = 'cal-todo-user-write-badge';
-                targetBadge.textContent = 'Destino';
-                option.appendChild(targetBadge);
-            }
-
-            radio.addEventListener('change', () => {
-                if (!radio.checked) return;
-                calendarTodoState.writeUserKey = normalizedUser;
-                calendarTodoState.composerUserKey = normalizedUser;
-                updateCalendarTodoUserButton();
-                renderCalendarTodoUserMenu();
-                positionCalendarTodoUserMenu();
-                if (calendarTodoState.composerDateKey) {
-                    renderCalendarTodoComposer();
-                }
-            });
-
-            targetList.appendChild(option);
-        });
-
-        targetSection.appendChild(targetList);
-        menu.appendChild(targetSection);
+        menu.appendChild(list);
 
         const hint = document.createElement('div');
         hint.className = 'cal-todo-user-hint';
