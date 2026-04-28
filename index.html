@@ -2436,7 +2436,7 @@ textarea.cal-todo-input {
 .cal-todo-user-popover {
     position: fixed;
     z-index: 70000;
-    width: min(260px, calc(100vw - 24px));
+    width: min(300px, calc(100vw - 24px));
     padding: 10px;
     border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.24);
@@ -2488,6 +2488,20 @@ textarea.cal-todo-input {
     padding-right: 2px;
 }
 
+.cal-todo-user-section {
+    margin-top: 9px;
+}
+
+.cal-todo-user-section-title {
+    margin: 0 0 6px;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(238,244,250,0.66) !important;
+    -webkit-text-fill-color: rgba(238,244,250,0.66) !important;
+}
+
 .cal-todo-user-option {
     display: flex;
     align-items: center;
@@ -2510,6 +2524,30 @@ textarea.cal-todo-input {
     background: rgba(88,166,255,0.2);
     border-color: rgba(88,166,255,0.4);
     transform: translateY(-1px);
+}
+
+.cal-todo-user-target-option {
+    background: rgba(255,255,255,0.045);
+}
+
+.cal-todo-user-target-option:hover,
+.cal-todo-user-target-option.is-active {
+    background: linear-gradient(90deg, rgba(42,129,255,0.42), rgba(88,166,255,0.18));
+    border-color: rgba(88,166,255,0.76);
+    box-shadow: 0 0 0 1px rgba(88,166,255,0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.cal-todo-user-write-badge {
+    margin-left: auto;
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(88,166,255,0.24);
+    color: #dcecff !important;
+    -webkit-text-fill-color: #dcecff !important;
+    font-size: 0.56rem;
+    font-weight: 900;
+    text-transform: uppercase;
 }
 
 .cal-todo-user-option input {
@@ -2698,6 +2736,53 @@ textarea.cal-todo-input {
     white-space: nowrap;
 }
 
+.cal-todo-user-target {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: -2px 0 8px;
+    padding: 5px 7px;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.12);
+}
+
+.cal-todo-user-target-label {
+    flex: 0 0 auto;
+    font-size: 0.66rem;
+    font-weight: 800;
+    color: rgba(238,244,250,0.82) !important;
+    -webkit-text-fill-color: rgba(238,244,250,0.82) !important;
+}
+
+.cal-todo-user-target-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 7px;
+    padding: 4px 7px;
+    background: rgba(255,255,255,0.94);
+    color: #16212b !important;
+    -webkit-text-fill-color: #16212b !important;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.cal-todo-user-target-pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 4px 7px;
+    border-radius: 7px;
+    background: rgba(255,255,255,0.16);
+    color: #f8fbff !important;
+    -webkit-text-fill-color: #f8fbff !important;
+    font-size: 0.68rem;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .cal-todo-draft {
     box-shadow: 0 10px 18px rgba(0,0,0,0.18);
 }
@@ -2873,6 +2958,7 @@ textarea.cal-todo-input {
 }
 
 #todoModal input,
+#todoModal select,
 #todoModal textarea {
     width: 100%;
     border-radius: 14px;
@@ -2885,9 +2971,15 @@ textarea.cal-todo-input {
 }
 
 #todoModal input:focus,
+#todoModal select:focus,
 #todoModal textarea:focus {
     border-color: rgba(255,255,255,0.34);
     background: rgba(245, 250, 255, 0.24);
+}
+
+#todoModal select option {
+    color: #16212b;
+    background: #f8fbff;
 }
 
 #todoModal textarea {
@@ -3821,6 +3913,10 @@ textarea.cal-todo-input {
                     <div class="todo-field">
                         <label for="todoDateInput">Data</label>
                         <input type="date" id="todoDateInput">
+                    </div>
+                    <div class="todo-field hidden" id="todoUserField">
+                        <label for="todoUserInput">Usuário</label>
+                        <select id="todoUserInput" aria-label="Usuário do To Do"></select>
                     </div>
                     <div class="todo-field full">
                         <label for="todoTextInput">Descrição</label>
@@ -14369,6 +14465,7 @@ function todoItemMatchesReference(cellItem, referenceItem, cellIndex = -1) {
 function refreshTodoComposerState() {
     const addBtn = document.getElementById('addTodoBtn');
     const cancelBtn = document.getElementById('cancelTodoEditBtn');
+    populateTodoUserInput(activeTodoContext.editing?.user || activeTodoContext.userKey || '');
     if (cancelBtn) {
         cancelBtn.classList.toggle('hidden', !activeTodoContext.editing);
     }
@@ -14377,6 +14474,35 @@ function refreshTodoComposerState() {
         addBtn.disabled = !canAdd;
         addBtn.title = activeTodoContext.editing ? 'Edicao automatica em andamento' : 'Adicionar To Do';
     }
+}
+
+function populateTodoUserInput(selectedUserKey = '') {
+    const field = document.getElementById('todoUserField');
+    const select = document.getElementById('todoUserInput');
+    if (!field || !select) return;
+
+    field.classList.toggle('hidden', !activeTodoContext.editing);
+
+    const selectedUser = normalizeTodoUserKey(selectedUserKey || activeTodoContext.editing?.user || activeTodoContext.userKey || '');
+    const users = new Set();
+    collectTodoUsers().forEach((user) => {
+        const userKey = normalizeTodoUserKey(user || '');
+        if (userKey) users.add(userKey);
+    });
+    if (activeTodoContext.userKey) users.add(normalizeTodoUserKey(activeTodoContext.userKey));
+    if (activeTodoContext.editing?.user) users.add(normalizeTodoUserKey(activeTodoContext.editing.user));
+    if (selectedUser) users.add(selectedUser);
+
+    const orderedUsers = Array.from(users).filter(Boolean).sort((left, right) => left.localeCompare(right, 'pt-BR'));
+    select.innerHTML = '';
+    orderedUsers.forEach((userKey) => {
+        const option = document.createElement('option');
+        option.value = userKey;
+        option.textContent = userKey;
+        select.appendChild(option);
+    });
+    select.value = selectedUser || orderedUsers[0] || '';
+    select.disabled = !activeTodoContext.editing || orderedUsers.length === 0;
 }
 
 async function refreshTodoModalIdentity(interactive = false) {
@@ -14401,7 +14527,7 @@ async function refreshTodoModalIdentity(interactive = false) {
     }
 
     setTodoInlineHint(activeTodoContext.editing
-        ? `Editando automaticamente como ${identity.userKey}.`
+        ? `Editando como ${activeTodoContext.editing?.user || identity.userKey}. Troque o usuario no campo acima para mover a tarefa.`
         : `Salvando como ${identity.userKey}. Botao direito para editar, mudar a cor ou excluir. Arraste para reorganizar.`);
     refreshTodoComposerState();
     return true;
@@ -14431,7 +14557,7 @@ function syncTodoDateContextFromInput() {
 
 function syncActiveTodoEditingReference() {
     if (!activeTodoContext.projectName || !activeTodoContext.editing?.id) return;
-    const currentItems = getProjectTodoItems(activeTodoContext.projectName, { user: activeTodoContext.userKey || '' });
+    const currentItems = getProjectTodoItems(activeTodoContext.projectName, { user: activeTodoContext.editing?.user || activeTodoContext.userKey || '' });
     activeTodoContext.editing = currentItems.find((item) => item.id === activeTodoContext.editing.id) || null;
 }
 
@@ -14454,6 +14580,7 @@ function enterTodoEditMode(item) {
     pauseTodoLiveSync();
     const textInput = document.getElementById('todoTextInput');
     const dateInput = document.getElementById('todoDateInput');
+    activeTodoContext.projectName = item.projectName || activeTodoContext.projectName;
     activeTodoContext.editing = item;
     activeTodoContext.dateColumnIndex = Number(item.col);
     if (dateInput) dateInput.value = item.dateValue || '';
@@ -14462,8 +14589,22 @@ function enterTodoEditMode(item) {
         textInput.focus();
         textInput.setSelectionRange(textInput.value.length, textInput.value.length);
     }
-    setTodoInlineHint(`Editando automaticamente como ${activeTodoContext.userKey || item.user}.`);
+    populateTodoUserInput(item.user || activeTodoContext.userKey || '');
+    setTodoInlineHint(`Editando como ${item.user || activeTodoContext.userKey}. Troque o usuario no campo acima para mover a tarefa.`);
     refreshTodoComposerState();
+    renderTodoModalList();
+}
+
+function openTodoEditMode(item) {
+    if (!item) return;
+    const modal = document.getElementById('todoModal');
+    const shouldOpenModal = !modal || modal.classList.contains('hidden') || activeTodoContext.projectName !== item.projectName;
+    if (shouldOpenModal) {
+        openTodoModal(item.projectName, { dateColumnIndex: Number(item.col) });
+        setTimeout(() => enterTodoEditMode(item), 0);
+        return;
+    }
+    enterTodoEditMode(item);
 }
 
 async function updateTodoItemColor(item, nextColor = '') {
@@ -14494,7 +14635,7 @@ async function updateTodoItemColor(item, nextColor = '') {
     );
 
     if (saved && activeTodoContext.editing?.id === item.id) {
-        const freshItem = getProjectTodoItems(activeTodoContext.projectName, { user: activeTodoContext.userKey || '' })
+        const freshItem = getProjectTodoItems(activeTodoContext.projectName, { user: item.user || activeTodoContext.userKey || '' })
             .find((entry) => entry.id === item.id);
         if (freshItem) {
             activeTodoContext.editing = freshItem;
@@ -14604,7 +14745,7 @@ async function updateTodoItemCategory(item, nextCategory = '') {
     );
 
     if (saved && activeTodoContext.editing?.id === item.id) {
-        const freshItem = getProjectTodoItems(activeTodoContext.projectName, { user: activeTodoContext.userKey || '' })
+        const freshItem = getProjectTodoItems(activeTodoContext.projectName, { user: item.user || activeTodoContext.userKey || '' })
             .find((entry) => entry.id === item.id);
         if (freshItem) {
             activeTodoContext.editing = freshItem;
@@ -14626,7 +14767,7 @@ function showTodoContextMenu(item, event) {
     editBtn.textContent = 'Editar';
     editBtn.onclick = () => {
         hideTodoContextMenu();
-        enterTodoEditMode(item);
+        openTodoEditMode(item);
     };
 
     const colorBtn = document.createElement('button');
@@ -14890,6 +15031,10 @@ async function persistTodoDraft(mode = 'add') {
         throw new Error('Projeto do To Do nao encontrado.');
     }
 
+    const editingItem = activeTodoContext.editing;
+    const requestedUserKey = editingItem
+        ? normalizeTodoUserKey(document.getElementById('todoUserInput')?.value || '')
+        : '';
     const identityReady = await refreshTodoModalIdentity(mode !== 'sync');
     if (!identityReady) {
         return false;
@@ -14915,8 +15060,8 @@ async function persistTodoDraft(mode = 'add') {
         throw new Error('A data escolhida nao existe nas colunas da timeline.');
     }
 
-    const editingItem = activeTodoContext.editing;
-    const userKey = activeTodoContext.userKey;
+    const sourceUserKey = normalizeTodoUserKey(editingItem?.user || activeTodoContext.userKey || '');
+    const userKey = normalizeTodoUserKey(requestedUserKey || sourceUserKey || activeTodoContext.userKey || '');
     const targetCol = Number(dateColumn.originalIndex);
     const targetSlots = getTodoProjectTaskSlots(project, userKey);
 
@@ -14934,12 +15079,13 @@ async function persistTodoDraft(mode = 'add') {
         : '';
     let sourceItemsAfterMove = null;
     if (editingItem) {
-        if (editingItem.col === targetCol) {
-            const nextItems = getProjectTodoItems(projectName, { dateColumnIndex: targetCol, user: userKey })
+        const userChanged = sourceUserKey !== userKey;
+        if (!userChanged && editingItem.col === targetCol) {
+            const nextItems = getProjectTodoItems(projectName, { dateColumnIndex: targetCol, user: sourceUserKey })
                 .map((entry) => entry.id === editingItem.id ? { ...entry, ...todoItem } : entry);
-            changes.push(...buildTodoDateCellChanges(project, userKey, targetCol, nextItems));
+            changes.push(...buildTodoDateCellChanges(project, sourceUserKey, targetCol, nextItems));
         } else {
-            const sourceItems = getProjectTodoItems(projectName, { dateColumnIndex: editingItem.col, user: userKey })
+            const sourceItems = getProjectTodoItems(projectName, { dateColumnIndex: editingItem.col, user: sourceUserKey })
                 .filter((entry) => entry.id !== editingItem.id);
             const targetItems = getProjectTodoItems(projectName, { dateColumnIndex: targetCol, user: userKey })
                 .filter((entry) => entry.id !== editingItem.id);
@@ -14948,7 +15094,7 @@ async function persistTodoDraft(mode = 'add') {
             }
             targetItems.push(todoItem);
             sourceItemsAfterMove = sourceItems;
-            changes.push(...buildTodoDateCellChanges(project, userKey, editingItem.col, sourceItems));
+            changes.push(...buildTodoDateCellChanges(project, sourceUserKey, editingItem.col, sourceItems));
             changes.push(...buildTodoDateCellChanges(project, userKey, targetCol, targetItems));
         }
     } else {
@@ -14964,13 +15110,19 @@ async function persistTodoDraft(mode = 'add') {
     const saved = await commitTodoCellChanges(changes, editingItem ? '💾 Atualizando To Do...' : '💾 Criando To Do...');
     if (!saved) return false;
 
-    if (editingItem && editingItem.col !== targetCol) {
-        advanceTodoOverviewRetainedDates(userKey, {
+    if (editingItem && (editingItem.col !== targetCol || sourceUserKey !== userKey)) {
+        advanceTodoOverviewRetainedDates(sourceUserKey, {
             sourceDateValue,
             sourceCountAfter: Array.isArray(sourceItemsAfterMove) ? sourceItemsAfterMove.length : 0,
             targetDateValue: dateValue,
             countMovement: true
         });
+        if (sourceUserKey !== userKey) {
+            advanceTodoOverviewRetainedDates(userKey, {
+                targetDateValue: dateValue,
+                countMovement: false
+            });
+        }
         refreshTodoOverviewIfOpen();
     }
 
@@ -14982,7 +15134,8 @@ async function persistTodoDraft(mode = 'add') {
         const freshItem = getProjectTodoItems(projectName, { user: userKey || '' }).find((item) => item.id === todoItem.id);
         if (freshItem) {
             activeTodoContext.editing = freshItem;
-            setTodoInlineHint(`Editando automaticamente como ${userKey}.`);
+            populateTodoUserInput(userKey);
+            setTodoInlineHint(`Editando como ${userKey}. Troque o usuario no campo acima para mover a tarefa.`);
         }
     }
 
@@ -15036,8 +15189,9 @@ function setupTodoListeners() {
     const cancelBtn = document.getElementById('cancelTodoEditBtn');
     const dateInput = document.getElementById('todoDateInput');
     const textInput = document.getElementById('todoTextInput');
+    const userInput = document.getElementById('todoUserInput');
 
-    if (!modal || !closeBtn || !addBtn || !cancelBtn || !dateInput || !textInput) return;
+    if (!modal || !closeBtn || !addBtn || !cancelBtn || !dateInput || !textInput || !userInput) return;
 
     closeBtn.addEventListener('click', closeTodoModal);
     addBtn.addEventListener('click', () => {
@@ -15061,6 +15215,13 @@ function setupTodoListeners() {
     });
 
     textInput.addEventListener('input', () => {
+        pauseTodoLiveSync();
+        if (activeTodoContext.editing) {
+            scheduleTodoEditAutosave();
+        }
+    });
+
+    userInput.addEventListener('change', () => {
         pauseTodoLiveSync();
         if (activeTodoContext.editing) {
             scheduleTodoEditAutosave();
@@ -18353,6 +18514,7 @@ function getWeatherIcon(weatherCode) {
         enabled: true,
         userKey: '',
         selectedUserKeys: new Set(),
+        writeUserKey: '',
         userSelectionInitialized: false,
         dragItem: null,
         dragMode: 'move',
@@ -18362,6 +18524,7 @@ function getWeatherIcon(weatherCode) {
         composerDateKey: '',
         composerProjectQuery: '',
         composerProjectName: '',
+        composerUserKey: '',
         composerSuggestionIndex: 0
     };
 
@@ -18458,17 +18621,35 @@ function getWeatherIcon(weatherCode) {
         }
 
         calendarTodoState.selectedUserKeys = selectedUsers;
+        syncCalendarTodoWriteUser(normalizedDefault);
         updateCalendarTodoUserButton();
         return getSelectedCalendarTodoUserKeys();
     }
 
-    function getCalendarTodoWriteUserKey() {
+    function syncCalendarTodoWriteUser(defaultUserKey = '') {
+        const availableUsers = getAvailableCalendarTodoUsers();
+        const availableSet = new Set(availableUsers);
         const selectedUsers = getSelectedCalendarTodoUserKeys();
-        const loggedUserKey = normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '');
+        const currentUser = normalizeTodoUserKey(calendarTodoState.writeUserKey || '');
+        const normalizedDefault = normalizeTodoUserKey(defaultUserKey || calendarTodoState.userKey || googleUserProfile.localPart || '');
+        let nextUser = '';
 
-        if (selectedUsers.length === 1) return selectedUsers[0];
-        if (loggedUserKey && selectedUsers.includes(loggedUserKey)) return loggedUserKey;
-        return selectedUsers[0] || loggedUserKey;
+        if (currentUser && availableSet.has(currentUser)) {
+            nextUser = currentUser;
+        } else if (normalizedDefault && availableSet.has(normalizedDefault)) {
+            nextUser = normalizedDefault;
+        } else if (selectedUsers.length > 0 && availableSet.has(selectedUsers[0])) {
+            nextUser = selectedUsers[0];
+        } else if (availableUsers.length > 0) {
+            nextUser = availableUsers[0];
+        }
+
+        calendarTodoState.writeUserKey = nextUser;
+        return nextUser;
+    }
+
+    function getCalendarTodoWriteUserKey() {
+        return syncCalendarTodoWriteUser();
     }
 
     function updateCalendarTodoUserButton() {
@@ -18477,17 +18658,19 @@ function getWeatherIcon(weatherCode) {
 
         const availableUsers = getAvailableCalendarTodoUsers();
         const selectedUsers = getSelectedCalendarTodoUserKeys();
+        const writeUserKey = getCalendarTodoWriteUserKey();
         const selectedLabel = selectedUsers.length > 0
             ? selectedUsers.map(formatCalendarTodoUserLabel).join(', ')
             : 'nenhum usuario';
+        const writeLabel = writeUserKey ? formatCalendarTodoUserLabel(writeUserKey) : 'nenhum usuario';
 
         button.textContent = selectedUsers.length > 1 ? '👥' : '👤';
         button.dataset.count = selectedUsers.length > 1 ? String(selectedUsers.length) : '';
         button.disabled = !calendarTodoState.enabled || availableUsers.length === 0;
         button.title = availableUsers.length === 0
             ? 'Nenhum usuario de To Do disponivel'
-            : `Usuarios do To Do: ${selectedLabel}`;
-        button.setAttribute('aria-label', `Escolher usuarios do To Do. Selecionados: ${selectedLabel}`);
+            : `Visualizando: ${selectedLabel}. Criar/copiar em: ${writeLabel}`;
+        button.setAttribute('aria-label', `Escolher usuarios do To Do. Visualizando: ${selectedLabel}. Criar ou copiar em: ${writeLabel}`);
         button.setAttribute('aria-pressed', selectedUsers.length > 0 ? 'true' : 'false');
     }
 
@@ -18506,6 +18689,7 @@ function getWeatherIcon(weatherCode) {
         calendarTodoState.composerDateKey = '';
         calendarTodoState.composerProjectQuery = '';
         calendarTodoState.composerProjectName = '';
+        calendarTodoState.composerUserKey = '';
         calendarTodoState.composerSuggestionIndex = 0;
     }
 
@@ -18682,6 +18866,7 @@ function getWeatherIcon(weatherCode) {
         const users = getAvailableCalendarTodoUsers();
         const selectedUsers = syncCalendarTodoUserSelection(calendarTodoState.userKey || googleUserProfile.localPart || '');
         const selectedSet = new Set(selectedUsers);
+        const writeUserKey = syncCalendarTodoWriteUser(calendarTodoState.userKey || googleUserProfile.localPart || '');
 
         menu.innerHTML = '';
 
@@ -18710,6 +18895,14 @@ function getWeatherIcon(weatherCode) {
             menu.appendChild(empty);
             return;
         }
+
+        const visibilitySection = document.createElement('div');
+        visibilitySection.className = 'cal-todo-user-section';
+
+        const visibilityTitle = document.createElement('div');
+        visibilityTitle.className = 'cal-todo-user-section-title';
+        visibilityTitle.textContent = 'Visualizar no calendário';
+        visibilitySection.appendChild(visibilityTitle);
 
         const list = document.createElement('div');
         list.className = 'cal-todo-user-list';
@@ -18764,13 +18957,70 @@ function getWeatherIcon(weatherCode) {
             list.appendChild(option);
         });
 
-        menu.appendChild(list);
+        visibilitySection.appendChild(list);
+        menu.appendChild(visibilitySection);
+
+        const targetSection = document.createElement('div');
+        targetSection.className = 'cal-todo-user-section';
+
+        const targetTitle = document.createElement('div');
+        targetTitle.className = 'cal-todo-user-section-title';
+        targetTitle.textContent = 'Criar/copiar em';
+        targetSection.appendChild(targetTitle);
+
+        const targetList = document.createElement('div');
+        targetList.className = 'cal-todo-user-list';
+
+        users.forEach((userKey) => {
+            const normalizedUser = normalizeTodoUserKey(userKey || '');
+            const option = document.createElement('label');
+            option.className = 'cal-todo-user-option cal-todo-user-target-option';
+            if (normalizedUser === writeUserKey) {
+                option.classList.add('is-active');
+            }
+
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'calendarTodoWriteUser';
+            radio.value = normalizedUser;
+            radio.checked = normalizedUser === writeUserKey;
+            radio.setAttribute('aria-label', `Criar e copiar To Do em ${formatCalendarTodoUserLabel(normalizedUser)}`);
+
+            const name = document.createElement('span');
+            name.className = 'cal-todo-user-name';
+            name.textContent = formatCalendarTodoUserLabel(normalizedUser);
+
+            option.appendChild(radio);
+            option.appendChild(name);
+
+            if (normalizedUser === writeUserKey) {
+                const targetBadge = document.createElement('span');
+                targetBadge.className = 'cal-todo-user-write-badge';
+                targetBadge.textContent = 'Destino';
+                option.appendChild(targetBadge);
+            }
+
+            radio.addEventListener('change', () => {
+                if (!radio.checked) return;
+                calendarTodoState.writeUserKey = normalizedUser;
+                calendarTodoState.composerUserKey = normalizedUser;
+                updateCalendarTodoUserButton();
+                renderCalendarTodoUserMenu();
+                positionCalendarTodoUserMenu();
+                if (calendarTodoState.composerDateKey) {
+                    renderCalendarTodoComposer();
+                }
+            });
+
+            targetList.appendChild(option);
+        });
+
+        targetSection.appendChild(targetList);
+        menu.appendChild(targetSection);
 
         const hint = document.createElement('div');
         hint.className = 'cal-todo-user-hint';
-        hint.textContent = selectedUsers.length > 1
-            ? `${selectedUsers.length} usuarios ligados no calendario.`
-            : `Usuario ligado: ${formatCalendarTodoUserLabel(selectedUsers[0] || '')}.`;
+        hint.textContent = `${selectedUsers.length} usuario${selectedUsers.length === 1 ? '' : 's'} visivel${selectedUsers.length === 1 ? '' : 'is'}. Criar/copiar em ${formatCalendarTodoUserLabel(writeUserKey || '')}.`;
         menu.appendChild(hint);
     }
 
@@ -18877,6 +19127,7 @@ function getWeatherIcon(weatherCode) {
         calendarTodoState.composerDateKey = String(dateKey || '').trim();
         calendarTodoState.composerProjectQuery = '';
         calendarTodoState.composerProjectName = '';
+        calendarTodoState.composerUserKey = getCalendarTodoWriteUserKey();
         calendarTodoState.composerSuggestionIndex = 0;
         renderCalendarTodoComposer();
     }
@@ -19015,6 +19266,17 @@ function getWeatherIcon(weatherCode) {
         composer.style.setProperty('--cal-selected-project-bg', hexToRgba(projectColor, 0.2));
         composer.style.setProperty('--cal-selected-project-color', projectColor);
 
+        const availableTodoUsers = getAvailableCalendarTodoUsers();
+        const writerOptions = availableTodoUsers
+            .map((user) => normalizeTodoUserKey(user || ''))
+            .filter(Boolean);
+        let writeUserKey = normalizeTodoUserKey(getCalendarTodoWriteUserKey() || '');
+        if (!writeUserKey || !writerOptions.includes(writeUserKey)) {
+            writeUserKey = normalizeTodoUserKey(writerOptions[0] || '');
+            calendarTodoState.writeUserKey = writeUserKey;
+        }
+        calendarTodoState.composerUserKey = writeUserKey;
+
         const meta = document.createElement('div');
         meta.className = 'cal-todo-composer-meta';
 
@@ -19039,6 +19301,24 @@ function getWeatherIcon(weatherCode) {
         meta.appendChild(pill);
         meta.appendChild(swapBtn);
         composer.appendChild(meta);
+
+        if (writerOptions.length > 0) {
+            const userTarget = document.createElement('div');
+            userTarget.className = 'cal-todo-user-target';
+
+            const userTargetLabel = document.createElement('span');
+            userTargetLabel.className = 'cal-todo-user-target-label';
+            userTargetLabel.textContent = 'Salvar para';
+            userTarget.appendChild(userTargetLabel);
+
+            const userPill = document.createElement('span');
+            userPill.className = 'cal-todo-user-target-pill';
+            userPill.title = 'Altere o destino no botão Usuários do To Do.';
+            userPill.textContent = formatCalendarTodoUserLabel(writeUserKey || writerOptions[0]);
+            userTarget.appendChild(userPill);
+
+            composer.appendChild(userTarget);
+        }
 
         const draft = document.createElement('div');
         draft.className = 'cal-todo-card cal-todo-draft';
@@ -19081,7 +19361,9 @@ function getWeatherIcon(weatherCode) {
             }
 
             try {
-                await createCalendarTodoItem(selectedProject.name, calendarTodoState.composerDateKey, nextText);
+                await createCalendarTodoItem(selectedProject.name, calendarTodoState.composerDateKey, nextText, {
+                    userKey: getCalendarTodoWriteUserKey()
+                });
                 closeCalendarTodoComposer();
             } catch (error) {
                 console.error('Falha ao criar To Do no calendário:', error);
@@ -19585,6 +19867,16 @@ function getWeatherIcon(weatherCode) {
         return baseIndex + (place === 'after' ? 1 : 0);
     }
 
+    function shouldCopyCalendarTodoDragToWriteUser(item) {
+        const sourceUserKey = getCalendarTodoUserKey(item);
+        const writeUserKey = getCalendarTodoWriteUserKey();
+        return !!sourceUserKey && !!writeUserKey && sourceUserKey !== writeUserKey;
+    }
+
+    function getCalendarTodoDragMode(event, item) {
+        return (event?.ctrlKey || event?.metaKey || shouldCopyCalendarTodoDragToWriteUser(item)) ? 'copy' : 'move';
+    }
+
     async function createCalendarTodoItem(projectName, dateValue, text, options = {}) {
         const project = projects.find((entry) => entry.name === projectName);
         if (!project) {
@@ -19683,32 +19975,35 @@ function getWeatherIcon(weatherCode) {
             throw new Error('Projeto do To Do nao encontrado.');
         }
 
-        const shouldDuplicate = !!options?.duplicate;
-
         const targetDateValue = String(options?.targetDateValue || draggedItem.dateValue || '').trim();
         const targetDateColumn = getDateColumnByIso(targetDateValue);
         if (!targetDateColumn) {
             throw new Error('A data escolhida nao existe nas colunas da timeline.');
         }
 
-        const userKey = getCalendarTodoUserKey(draggedItem);
+        const sourceUserKey = getCalendarTodoUserKey(draggedItem);
+        const writeUserKey = getCalendarTodoWriteUserKey();
+        const copyToWriteUser = !!writeUserKey && writeUserKey !== sourceUserKey;
+        const shouldDuplicate = !!options?.duplicate || copyToWriteUser;
+        const userKey = copyToWriteUser ? writeUserKey : sourceUserKey;
         const sourceCol = Number(draggedItem.col);
         const targetCol = Number(targetDateColumn.originalIndex);
         const targetItem = options?.targetItem || null;
         const place = options?.place === 'after' ? 'after' : 'before';
         const targetSlots = getTodoProjectTaskSlots(project, userKey);
+        const sameUserAndColumn = userKey === sourceUserKey && targetCol === sourceCol;
 
-        const sourceBaseItems = getProjectTodoItems(draggedItem.projectName, { dateColumnIndex: sourceCol, user: userKey });
+        const sourceBaseItems = getProjectTodoItems(draggedItem.projectName, { dateColumnIndex: sourceCol, user: sourceUserKey });
         const sourceItems = shouldDuplicate
             ? [...sourceBaseItems]
             : sourceBaseItems.filter((entry) => entry.id !== draggedItem.id);
 
-        const targetItems = targetCol === sourceCol
+        const targetItems = sameUserAndColumn
             ? [...sourceItems]
             : getProjectTodoItems(draggedItem.projectName, { dateColumnIndex: targetCol, user: userKey })
                 .filter((entry) => shouldDuplicate ? true : entry.id !== draggedItem.id);
 
-        if ((shouldDuplicate && targetItems.length >= targetSlots.length) || (!shouldDuplicate && targetCol !== sourceCol && targetItems.length >= targetSlots.length)) {
+        if ((shouldDuplicate || !sameUserAndColumn) && targetItems.length >= targetSlots.length) {
             throw new Error(buildTodoCapacityMessage(project.name, targetDateValue, targetSlots.length));
         }
 
@@ -19723,32 +20018,41 @@ function getWeatherIcon(weatherCode) {
         });
 
         const changes = [];
-        if (targetCol === sourceCol) {
+        if (sameUserAndColumn) {
             changes.push(...buildTodoDateCellChanges(project, userKey, targetCol, targetItems));
         } else {
             if (!shouldDuplicate) {
-                changes.push(...buildTodoDateCellChanges(project, userKey, sourceCol, sourceItems));
+                changes.push(...buildTodoDateCellChanges(project, sourceUserKey, sourceCol, sourceItems));
             }
             changes.push(...buildTodoDateCellChanges(project, userKey, targetCol, targetItems));
         }
 
-        const sourceCountAfter = targetCol === sourceCol
+        const sourceCountAfter = sameUserAndColumn
             ? targetItems.length
             : (shouldDuplicate ? sourceBaseItems.length : sourceItems.length);
 
         await commitTodoCellChanges(
             changes,
-            shouldDuplicate
+            copyToWriteUser
+                ? `📄 Copiando To Do para ${userKey}...`
+                : shouldDuplicate
                 ? '📄 Duplicando To Do...'
                 : (targetCol === sourceCol ? '↕️ Reordenando To Do...' : '📆 Movendo To Do...')
         );
 
-        advanceTodoOverviewRetainedDates(userKey, {
-            sourceDateValue: String(draggedItem.dateValue || '').trim(),
-            sourceCountAfter,
-            targetDateValue,
-            countMovement: true
-        });
+        if (shouldDuplicate) {
+            advanceTodoOverviewRetainedDates(userKey, {
+                targetDateValue,
+                countMovement: false
+            });
+        } else {
+            advanceTodoOverviewRetainedDates(sourceUserKey, {
+                sourceDateValue: String(draggedItem.dateValue || '').trim(),
+                sourceCountAfter,
+                targetDateValue,
+                countMovement: true
+            });
+        }
         refreshTodoOverviewIfOpen();
     }
 
@@ -19823,7 +20127,7 @@ function getWeatherIcon(weatherCode) {
 
         card.addEventListener('dragstart', (event) => {
             calendarTodoState.dragItem = item;
-            calendarTodoState.dragMode = (event.ctrlKey || event.metaKey) ? 'copy' : 'move';
+            calendarTodoState.dragMode = getCalendarTodoDragMode(event, item);
             calendarTodoState.ignoreClickUntil = Date.now() + 250;
             card.classList.add('dragging');
             if (event.dataTransfer) {
@@ -19845,7 +20149,7 @@ function getWeatherIcon(weatherCode) {
             if (!draggedItem || draggedItem.id === item.id) return;
             if (draggedItem.projectName !== item.projectName) return;
             event.preventDefault();
-            calendarTodoState.dragMode = (event.ctrlKey || event.metaKey) ? 'copy' : 'move';
+            calendarTodoState.dragMode = getCalendarTodoDragMode(event, draggedItem);
             if (event.dataTransfer) {
                 event.dataTransfer.dropEffect = calendarTodoState.dragMode === 'copy' ? 'copy' : 'move';
             }
@@ -19879,7 +20183,7 @@ function getWeatherIcon(weatherCode) {
             if (!calendarTodoState.dragItem) return;
             if (event.target !== list) return;
             event.preventDefault();
-            calendarTodoState.dragMode = (event.ctrlKey || event.metaKey) ? 'copy' : 'move';
+            calendarTodoState.dragMode = getCalendarTodoDragMode(event, calendarTodoState.dragItem);
             if (event.dataTransfer) {
                 event.dataTransfer.dropEffect = calendarTodoState.dragMode === 'copy' ? 'copy' : 'move';
             }
@@ -19916,7 +20220,7 @@ function getWeatherIcon(weatherCode) {
             if (!calendarTodoState.dragItem) return;
             if (event.target?.closest && event.target.closest('.cal-todo-card')) return;
             event.preventDefault();
-            calendarTodoState.dragMode = (event.ctrlKey || event.metaKey) ? 'copy' : 'move';
+            calendarTodoState.dragMode = getCalendarTodoDragMode(event, calendarTodoState.dragItem);
             if (event.dataTransfer) {
                 event.dataTransfer.dropEffect = calendarTodoState.dragMode === 'copy' ? 'copy' : 'move';
             }
