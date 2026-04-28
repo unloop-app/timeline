@@ -5464,6 +5464,7 @@ const TODO_DEFAULT_COLOR = '#FFE082';
 const TODO_TASKS_PER_SHEET = 10;
 const TODO_MAX_SHEETS_PER_USER = 2;
 const TODO_OVERVIEW_EMPTY_DATE_MOVES = 3;
+const TODO_OVERVIEW_BACKWARD_WEEKS = 5;
 const TODO_OVERVIEW_FORWARD_NOTE_WEEKS = 5;
 const TODO_OVERVIEW_NOTE_TYPE_ORDER = ['entrega', 'cliente', 'aniversario', 'feriado', 'ferias'];
 const TODO_OVERVIEW_NOTE_TYPE_LABELS = {
@@ -15313,7 +15314,7 @@ function getTodoOverviewRetainedDates(userKey = '') {
 function getTodoOverviewCutoffDateValue() {
     const cutoff = new Date();
     cutoff.setHours(0, 0, 0, 0);
-    cutoff.setDate(cutoff.getDate() - 7);
+    cutoff.setDate(cutoff.getDate() - (TODO_OVERVIEW_BACKWARD_WEEKS * 7));
     return cutoff.toISOString().split('T')[0];
 }
 
@@ -16278,6 +16279,7 @@ function renderTodoOverviewModal() {
 
     const { groups } = collectTodoOverviewGroups(userKey);
     const notesByDate = collectTodoOverviewDateNotes();
+    const todayDateValue = new Date().toISOString().split('T')[0];
     setTodoOverviewHint(todoOverviewState.hasSheets ? '' : `Não encontrei abas TODO - ${userKey} - 1 ou TODO - ${userKey} - 2.`);
 
     const mergedGroups = new Map();
@@ -16297,6 +16299,15 @@ function renderTodoOverviewModal() {
             });
         }
     });
+    if (!mergedGroups.has(todayDateValue) && getDateColumnByIso(todayDateValue)) {
+        mergedGroups.set(todayDateValue, {
+            dateValue: todayDateValue,
+            items: [],
+            retainedMoves: 0,
+            dateNotes: [],
+            isTodayPlaceholder: true
+        });
+    }
 
     const filteredGroups = Array.from(mergedGroups.values())
         .map((group) => ({
@@ -16306,7 +16317,7 @@ function renderTodoOverviewModal() {
                 : group.items,
             dateNotes: filterTodoOverviewDateNotes(group.dateNotes || [], todoOverviewState.filterProjectName)
         }))
-        .filter((group) => group.items.length > 0 || group.retainedMoves > 0 || group.dateNotes.length > 0)
+        .filter((group) => group.items.length > 0 || group.retainedMoves > 0 || group.dateNotes.length > 0 || group.isTodayPlaceholder)
         .sort((left, right) => left.dateValue.localeCompare(right.dateValue));
 
     const visibleItems = filteredGroups.flatMap((group) => group.items);
@@ -16315,12 +16326,11 @@ function renderTodoOverviewModal() {
     updateTodoOverviewSummary({ total: visibleItems.length, done: doneCount, pending: pendingCount });
 
     if (filteredGroups.length === 0) {
-        list.innerHTML = '<div class="todo-empty">Nenhum To Do entre uma semana atrás e as datas futuras da timeline.</div>';
+        list.innerHTML = '<div class="todo-empty">Nenhum To Do a partir de 5 semanas atrás e nas datas futuras da timeline.</div>';
         updateTodoOverviewModalWidth({ preserveRightAlign: true });
         return;
     }
 
-    const todayDateValue = new Date().toISOString().split('T')[0];
     list.innerHTML = '';
     filteredGroups.forEach((group) => {
         const groupEl = document.createElement('section');
