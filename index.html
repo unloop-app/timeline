@@ -2029,6 +2029,28 @@ body.br-mode .br-control-indicator:hover {
     box-shadow: 0 10px 22px rgba(18, 28, 36, 0.22);
 }
 
+.cal-floating-controls .cal-todo-user-btn {
+    position: relative;
+    font-size: 13px;
+}
+
+.cal-floating-controls .cal-todo-user-btn[data-count]:not([data-count=""]):not([data-count="1"])::after {
+    content: attr(data-count);
+    position: absolute;
+    right: -4px;
+    top: -5px;
+    min-width: 13px;
+    height: 13px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: #0053dc;
+    color: #ffffff !important;
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+}
+
 .cal-grid-wrap {
     flex: 1;
     display: flex;
@@ -2298,6 +2320,11 @@ body.br-mode .br-control-indicator:hover {
     opacity: 0.45;
 }
 
+.cal-todo-card.is-other-user {
+    border-color: var(--cal-todo-owner-border, var(--cal-todo-border, rgba(0,0,0,0.12)));
+    border-width: 1.5px;
+}
+
 .cal-todo-card.drop-before {
     box-shadow: inset 0 2px 0 rgba(0,83,220,0.55);
 }
@@ -2343,6 +2370,24 @@ body.br-mode .br-control-indicator:hover {
     -webkit-box-orient: vertical;
 }
 
+.cal-todo-user-badge {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.7);
+    color: var(--cal-todo-color, #2a3439) !important;
+    -webkit-text-fill-color: var(--cal-todo-color, #2a3439) !important;
+    border: 1px solid var(--cal-todo-border, rgba(0,0,0,0.12));
+    font-size: 0.5rem;
+    font-weight: 900;
+    line-height: 14px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
 .cal-todo-input {
     width: 100%;
     box-sizing: border-box;
@@ -2386,6 +2431,120 @@ textarea.cal-todo-input {
 .cal-day-context-menu.hidden,
 .cal-todo-composer-popover.hidden {
     display: none;
+}
+
+.cal-todo-user-popover {
+    position: fixed;
+    z-index: 70000;
+    width: min(260px, calc(100vw - 24px));
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.24);
+    background: rgba(19, 27, 34, 0.94);
+    color: #eef4fa !important;
+    -webkit-text-fill-color: #eef4fa !important;
+    box-shadow: 0 14px 32px rgba(0,0,0,0.3);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+}
+
+.cal-todo-user-popover.hidden {
+    display: none;
+}
+
+.cal-todo-user-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.cal-todo-user-title {
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(238,244,250,0.92) !important;
+    -webkit-text-fill-color: rgba(238,244,250,0.92) !important;
+}
+
+.cal-todo-user-close {
+    border: none;
+    background: transparent;
+    color: rgba(238,244,250,0.88) !important;
+    -webkit-text-fill-color: rgba(238,244,250,0.88) !important;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.cal-todo-user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: min(320px, calc(100vh - 150px));
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.cal-todo-user-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    padding: 7px 9px;
+    background: rgba(255,255,255,0.05);
+    color: #f0f5fb !important;
+    -webkit-text-fill-color: #f0f5fb !important;
+    font-size: 0.78rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.cal-todo-user-option:hover,
+.cal-todo-user-option.is-active {
+    background: rgba(88,166,255,0.2);
+    border-color: rgba(88,166,255,0.4);
+    transform: translateY(-1px);
+}
+
+.cal-todo-user-option input {
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    flex: 0 0 auto;
+    accent-color: #58a6ff;
+}
+
+.cal-todo-user-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.cal-todo-user-self {
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: rgba(238,244,250,0.72) !important;
+    -webkit-text-fill-color: rgba(238,244,250,0.72) !important;
+    text-transform: uppercase;
+}
+
+.cal-todo-user-empty,
+.cal-todo-user-hint {
+    margin-top: 8px;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: rgba(238,244,250,0.82) !important;
+    -webkit-text-fill-color: rgba(238,244,250,0.82) !important;
 }
 
 .cal-day-context-menu {
@@ -3879,6 +4038,7 @@ const EMBEDDED_HTML_TEMPLATE = `<!DOCTYPE html>
                 <span class="cal-title" id="calTitle"></span>
                 <button class="cal-nav-btn" id="calNextBtn" title="Próximo mês">&#8250;</button>
                 <button class="cal-today-btn" id="calTodayBtn">Hoje</button>
+                <button class="cal-nav-btn cal-todo-toggle-btn" id="calTodoToggleBtn" type="button" aria-pressed="false">To Do off</button>
                 <button class="cal-close-btn" id="calCloseBtn" title="Fechar">&#x2715;</button>
             </div>
             <div class="cal-grid-wrap">
@@ -15283,6 +15443,17 @@ function ensureTodoOverviewButtons() {
         calendarInner.appendChild(calendarFloatingControls);
     }
 
+    let calendarUserButton = document.getElementById('calTodoUserBtn');
+    if (!calendarUserButton) {
+        calendarUserButton = document.createElement('button');
+        calendarUserButton.id = 'calTodoUserBtn';
+        calendarUserButton.type = 'button';
+        calendarUserButton.title = 'Escolher usuários do To Do';
+        calendarUserButton.setAttribute('aria-label', 'Escolher usuários do To Do');
+    }
+    calendarUserButton.className = 'cal-close-btn cal-todo-user-btn';
+    calendarUserButton.textContent = '👤';
+
     let calendarButton = document.getElementById('calendarTodoOverviewBtn');
     if (!calendarButton) {
         calendarButton = document.createElement('button');
@@ -15296,6 +15467,9 @@ function ensureTodoOverviewButtons() {
 
     const calendarCloseButton = document.getElementById('calCloseBtn');
     if (calendarFloatingControls) {
+        if (calendarUserButton.parentElement !== calendarFloatingControls) {
+            calendarFloatingControls.appendChild(calendarUserButton);
+        }
         if (calendarCloseButton && calendarCloseButton.parentElement !== calendarFloatingControls) {
             calendarFloatingControls.appendChild(calendarCloseButton);
         }
@@ -18139,9 +18313,12 @@ function getWeatherIcon(weatherCode) {
     let tooltipEl = null;
     let calendarDayContextMenuEl = null;
     let calendarTodoComposerEl = null;
+    let calendarTodoUserMenuEl = null;
     const calendarTodoState = {
         enabled: true,
         userKey: '',
+        selectedUserKeys: new Set(),
+        userSelectionInitialized: false,
         dragItem: null,
         dragMode: 'move',
         ignoreClickUntil: 0,
@@ -18166,6 +18343,119 @@ function getWeatherIcon(weatherCode) {
         return document.getElementById('calTodoToggleBtn');
     }
 
+    function getCalendarTodoUserButton() {
+        return document.getElementById('calTodoUserBtn');
+    }
+
+    function getAvailableCalendarTodoUsers() {
+        const users = new Set();
+        const sourceUsers = typeof collectTodoUsers === 'function'
+            ? collectTodoUsers()
+            : (Array.isArray(todoUsers) ? todoUsers : []);
+
+        (sourceUsers || []).forEach((user) => {
+            const userKey = normalizeTodoUserKey(user || '');
+            if (userKey) users.add(userKey);
+        });
+
+        const loggedUserKey = normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '');
+        if (loggedUserKey && typeof getTodoSheetNamesForUser === 'function' && getTodoSheetNamesForUser(loggedUserKey).length > 0) {
+            users.add(loggedUserKey);
+        }
+
+        return Array.from(users).sort((left, right) => left.localeCompare(right, 'pt-BR'));
+    }
+
+    function formatCalendarTodoUserLabel(userKey = '') {
+        return normalizeTodoUserKey(userKey || '');
+    }
+
+    function getCalendarTodoUserInitials(userKey = '') {
+        const normalized = formatCalendarTodoUserLabel(userKey);
+        if (!normalized) return '??';
+        const parts = normalized.split(/[._\-\s]+/).filter(Boolean);
+        if (parts.length >= 2) {
+            return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+        }
+        return normalized.slice(0, 2).toUpperCase();
+    }
+
+    function getSelectedCalendarTodoUserKeys() {
+        const availableUsers = getAvailableCalendarTodoUsers();
+        const availableSet = new Set(availableUsers);
+        const rawSelection = calendarTodoState.selectedUserKeys instanceof Set
+            ? Array.from(calendarTodoState.selectedUserKeys)
+            : [];
+        const normalizedSelection = Array.from(new Set(rawSelection
+            .map((user) => normalizeTodoUserKey(user || ''))
+            .filter(Boolean)));
+        const effectiveSelection = availableSet.size > 0
+            ? normalizedSelection.filter((user) => availableSet.has(user))
+            : normalizedSelection;
+
+        if (effectiveSelection.length !== normalizedSelection.length || !(calendarTodoState.selectedUserKeys instanceof Set)) {
+            calendarTodoState.selectedUserKeys = new Set(effectiveSelection);
+        }
+
+        return effectiveSelection;
+    }
+
+    function syncCalendarTodoUserSelection(defaultUserKey = '') {
+        const availableUsers = getAvailableCalendarTodoUsers();
+        const availableSet = new Set(availableUsers);
+        const normalizedDefault = normalizeTodoUserKey(defaultUserKey || calendarTodoState.userKey || googleUserProfile.localPart || '');
+        let selectedUsers = new Set(getSelectedCalendarTodoUserKeys());
+
+        if (!calendarTodoState.userSelectionInitialized) {
+            selectedUsers = new Set();
+            if (normalizedDefault && availableSet.has(normalizedDefault)) {
+                selectedUsers.add(normalizedDefault);
+            } else if (availableUsers.length > 0) {
+                selectedUsers.add(availableUsers[0]);
+            }
+            calendarTodoState.userSelectionInitialized = true;
+        } else if (selectedUsers.size === 0) {
+            if (normalizedDefault && availableSet.has(normalizedDefault)) {
+                selectedUsers.add(normalizedDefault);
+            } else if (availableUsers.length > 0) {
+                selectedUsers.add(availableUsers[0]);
+            }
+        }
+
+        calendarTodoState.selectedUserKeys = selectedUsers;
+        updateCalendarTodoUserButton();
+        return getSelectedCalendarTodoUserKeys();
+    }
+
+    function getCalendarTodoWriteUserKey() {
+        const selectedUsers = getSelectedCalendarTodoUserKeys();
+        const loggedUserKey = normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '');
+
+        if (selectedUsers.length === 1) return selectedUsers[0];
+        if (loggedUserKey && selectedUsers.includes(loggedUserKey)) return loggedUserKey;
+        return selectedUsers[0] || loggedUserKey;
+    }
+
+    function updateCalendarTodoUserButton() {
+        const button = getCalendarTodoUserButton();
+        if (!button) return;
+
+        const availableUsers = getAvailableCalendarTodoUsers();
+        const selectedUsers = getSelectedCalendarTodoUserKeys();
+        const selectedLabel = selectedUsers.length > 0
+            ? selectedUsers.map(formatCalendarTodoUserLabel).join(', ')
+            : 'nenhum usuario';
+
+        button.textContent = selectedUsers.length > 1 ? '👥' : '👤';
+        button.dataset.count = selectedUsers.length > 1 ? String(selectedUsers.length) : '';
+        button.disabled = !calendarTodoState.enabled || availableUsers.length === 0;
+        button.title = availableUsers.length === 0
+            ? 'Nenhum usuario de To Do disponivel'
+            : `Usuarios do To Do: ${selectedLabel}`;
+        button.setAttribute('aria-label', `Escolher usuarios do To Do. Selecionados: ${selectedLabel}`);
+        button.setAttribute('aria-pressed', selectedUsers.length > 0 ? 'true' : 'false');
+    }
+
     function updateCalendarTodoToggleButton() {
         const button = getCalendarTodoToggleButton();
         if (!button) return;
@@ -18173,6 +18463,7 @@ function getWeatherIcon(weatherCode) {
         button.title = calendarTodoState.enabled ? 'Ocultar To Dos no calendário' : 'Mostrar To Dos no calendário';
         button.setAttribute('aria-pressed', calendarTodoState.enabled ? 'true' : 'false');
         button.classList.toggle('active', calendarTodoState.enabled);
+        updateCalendarTodoUserButton();
     }
 
     function resetCalendarTodoComposerState() {
@@ -18288,6 +18579,185 @@ function getWeatherIcon(weatherCode) {
 
     function closeCalendarTodoComposer() {
         hideCalendarTodoComposer({ resetState: true });
+    }
+
+    function ensureCalendarTodoUserMenu() {
+        if (calendarTodoUserMenuEl) return calendarTodoUserMenuEl;
+
+        calendarTodoUserMenuEl = document.createElement('div');
+        calendarTodoUserMenuEl.className = 'cal-todo-user-popover hidden';
+        document.body.appendChild(calendarTodoUserMenuEl);
+        calendarTodoUserMenuEl.addEventListener('click', (event) => event.stopPropagation());
+        calendarTodoUserMenuEl.addEventListener('mousedown', (event) => event.stopPropagation());
+        calendarTodoUserMenuEl.addEventListener('contextmenu', (event) => event.stopPropagation());
+
+        document.addEventListener('click', (event) => {
+            if (event?.target?.closest && (event.target.closest('.cal-todo-user-popover') || event.target.closest('#calTodoUserBtn'))) {
+                return;
+            }
+            hideCalendarTodoUserMenu();
+        });
+        document.addEventListener('scroll', () => {
+            if (!calendarTodoUserMenuEl || calendarTodoUserMenuEl.classList.contains('hidden')) return;
+            positionCalendarTodoUserMenu();
+        }, true);
+        window.addEventListener('resize', () => {
+            if (!calendarTodoUserMenuEl || calendarTodoUserMenuEl.classList.contains('hidden')) return;
+            positionCalendarTodoUserMenu();
+        });
+        window.addEventListener('blur', hideCalendarTodoUserMenu);
+
+        return calendarTodoUserMenuEl;
+    }
+
+    function hideCalendarTodoUserMenu() {
+        if (!calendarTodoUserMenuEl) return;
+        calendarTodoUserMenuEl.classList.add('hidden');
+        calendarTodoUserMenuEl.innerHTML = '';
+    }
+
+    function positionCalendarTodoUserMenu() {
+        const menu = ensureCalendarTodoUserMenu();
+        const anchor = getCalendarTodoUserButton();
+        if (!anchor) {
+            hideCalendarTodoUserMenu();
+            return;
+        }
+
+        const rect = anchor.getBoundingClientRect();
+        const margin = 12;
+        menu.classList.remove('hidden');
+        const menuRect = menu.getBoundingClientRect();
+        let left = rect.left - menuRect.width - 10;
+        let top = rect.top;
+
+        if (left < margin) {
+            left = Math.min(rect.left, window.innerWidth - menuRect.width - margin);
+        }
+        if ((top + menuRect.height) > (window.innerHeight - margin)) {
+            top = window.innerHeight - menuRect.height - margin;
+        }
+
+        menu.style.left = `${Math.max(margin, left)}px`;
+        menu.style.top = `${Math.max(margin, top)}px`;
+    }
+
+    function renderCalendarTodoUserMenu() {
+        const menu = ensureCalendarTodoUserMenu();
+        const users = getAvailableCalendarTodoUsers();
+        const selectedUsers = syncCalendarTodoUserSelection(calendarTodoState.userKey || googleUserProfile.localPart || '');
+        const selectedSet = new Set(selectedUsers);
+
+        menu.innerHTML = '';
+
+        const header = document.createElement('div');
+        header.className = 'cal-todo-user-header';
+
+        const title = document.createElement('div');
+        title.className = 'cal-todo-user-title';
+        title.textContent = 'Usuários do To Do';
+
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'cal-todo-user-close';
+        closeBtn.setAttribute('aria-label', 'Fechar lista de usuarios do To Do');
+        closeBtn.textContent = '×';
+        closeBtn.addEventListener('click', hideCalendarTodoUserMenu);
+
+        header.appendChild(title);
+        header.appendChild(closeBtn);
+        menu.appendChild(header);
+
+        if (users.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'cal-todo-user-empty';
+            empty.textContent = 'Nenhum usuario de To Do disponivel nesta planilha.';
+            menu.appendChild(empty);
+            return;
+        }
+
+        const list = document.createElement('div');
+        list.className = 'cal-todo-user-list';
+
+        users.forEach((userKey) => {
+            const normalizedUser = normalizeTodoUserKey(userKey || '');
+            const option = document.createElement('label');
+            option.className = 'cal-todo-user-option';
+            if (selectedSet.has(normalizedUser)) {
+                option.classList.add('is-active');
+            }
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = selectedSet.has(normalizedUser);
+            checkbox.setAttribute('aria-label', `Mostrar To Do de ${formatCalendarTodoUserLabel(normalizedUser)}`);
+
+            const name = document.createElement('span');
+            name.className = 'cal-todo-user-name';
+            name.textContent = formatCalendarTodoUserLabel(normalizedUser);
+
+            option.appendChild(checkbox);
+            option.appendChild(name);
+
+            if (normalizedUser && normalizedUser === normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '')) {
+                const self = document.createElement('span');
+                self.className = 'cal-todo-user-self';
+                self.textContent = 'Você';
+                option.appendChild(self);
+            }
+
+            checkbox.addEventListener('change', () => {
+                const nextSelection = new Set(getSelectedCalendarTodoUserKeys());
+                if (checkbox.checked) {
+                    nextSelection.add(normalizedUser);
+                } else {
+                    if (nextSelection.size <= 1 && nextSelection.has(normalizedUser)) {
+                        showToast('Selecione pelo menos um usuario do To Do.', 'warning', 2200);
+                        checkbox.checked = true;
+                        return;
+                    }
+                    nextSelection.delete(normalizedUser);
+                }
+
+                calendarTodoState.selectedUserKeys = nextSelection;
+                updateCalendarTodoUserButton();
+                renderCalendar();
+                renderCalendarTodoUserMenu();
+                positionCalendarTodoUserMenu();
+            });
+
+            list.appendChild(option);
+        });
+
+        menu.appendChild(list);
+
+        const hint = document.createElement('div');
+        hint.className = 'cal-todo-user-hint';
+        hint.textContent = selectedUsers.length > 1
+            ? `${selectedUsers.length} usuarios ligados no calendario.`
+            : `Usuario ligado: ${formatCalendarTodoUserLabel(selectedUsers[0] || '')}.`;
+        menu.appendChild(hint);
+    }
+
+    async function openCalendarTodoUserMenu(event = null) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        hideCalendarDayContextMenu();
+        closeCalendarTodoComposer();
+        hideTodoContextMenu();
+
+        if (!calendarTodoState.enabled) {
+            const todoReady = await toggleCalendarTodos(true);
+            if (!todoReady) return;
+        } else {
+            syncCalendarTodoUserSelection(calendarTodoState.userKey || googleUserProfile.localPart || '');
+        }
+
+        renderCalendarTodoUserMenu();
+        positionCalendarTodoUserMenu();
     }
 
     function positionCalendarTodoComposer() {
@@ -18671,6 +19141,7 @@ function getWeatherIcon(weatherCode) {
             calendarTodoState.editingId = '';
             hideCalendarDayContextMenu();
             closeCalendarTodoComposer();
+            hideCalendarTodoUserMenu();
             updateCalendarTodoToggleButton();
             if (isCalendarModalOpen()) {
                 syncCalendarData();
@@ -18699,6 +19170,7 @@ function getWeatherIcon(weatherCode) {
             }
 
             calendarTodoState.userKey = userKey;
+            syncCalendarTodoUserSelection(userKey);
             calendarTodoState.enabled = true;
             updateCalendarTodoToggleButton();
             if (isCalendarModalOpen()) {
@@ -18713,6 +19185,7 @@ function getWeatherIcon(weatherCode) {
             calendarTodoState.dragMode = 'move';
             hideCalendarDayContextMenu();
             closeCalendarTodoComposer();
+            hideCalendarTodoUserMenu();
             updateCalendarTodoToggleButton();
             return false;
         }
@@ -18762,6 +19235,10 @@ function getWeatherIcon(weatherCode) {
         const modal = getCalendarModal();
         if (!modal || modal.dataset.initialized === 'true') return;
 
+        if (typeof ensureTodoOverviewButtons === 'function') {
+            ensureTodoOverviewButtons();
+        }
+
         const today = new Date();
         calendarYear = today.getFullYear();
         calendarMonth = today.getMonth();
@@ -18769,6 +19246,7 @@ function getWeatherIcon(weatherCode) {
         document.getElementById('calPrevBtn').onclick = function() {
             hideCalendarDayContextMenu();
             closeCalendarTodoComposer();
+            hideCalendarTodoUserMenu();
             calendarMonth -= 1;
             if (calendarMonth < 0) {
                 calendarMonth = 11;
@@ -18780,6 +19258,7 @@ function getWeatherIcon(weatherCode) {
         document.getElementById('calNextBtn').onclick = function() {
             hideCalendarDayContextMenu();
             closeCalendarTodoComposer();
+            hideCalendarTodoUserMenu();
             calendarMonth += 1;
             if (calendarMonth > 11) {
                 calendarMonth = 0;
@@ -18791,6 +19270,7 @@ function getWeatherIcon(weatherCode) {
         document.getElementById('calTodayBtn').onclick = function() {
             hideCalendarDayContextMenu();
             closeCalendarTodoComposer();
+            hideCalendarTodoUserMenu();
             const now = new Date();
             calendarYear = now.getFullYear();
             calendarMonth = now.getMonth();
@@ -18806,6 +19286,16 @@ function getWeatherIcon(weatherCode) {
             todoToggleBtn.onclick = function() {
                 toggleCalendarTodos().catch((error) => {
                     console.error('Falha ao alternar To Do do calendário:', error);
+                });
+            };
+        }
+
+        const todoUserBtn = getCalendarTodoUserButton();
+        if (todoUserBtn) {
+            todoUserBtn.onclick = function(event) {
+                openCalendarTodoUserMenu(event).catch((error) => {
+                    console.error('Falha ao abrir usuarios do To Do do calendário:', error);
+                    showToast(error.message || 'Falha ao abrir usuarios do To Do.', 'error', 2800);
                 });
             };
         }
@@ -18828,12 +19318,16 @@ function getWeatherIcon(weatherCode) {
             if (!event.target.closest('.cal-day-context-menu')) {
                 hideCalendarDayContextMenu();
             }
+            if (!event.target.closest('.cal-todo-user-popover') && !event.target.closest('#calTodoUserBtn')) {
+                hideCalendarTodoUserMenu();
+            }
             if (event.target === modal) {
                 window.closeCalendarModal();
             }
         });
 
         updateCalendarTodoToggleButton();
+        updateCalendarTodoUserButton();
         modal.dataset.initialized = 'true';
     }
 
@@ -19017,16 +19511,18 @@ function getWeatherIcon(weatherCode) {
         }
 
         if (calendarTodoState.enabled) {
-            const todoUserKey = normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '');
-            if (todoUserKey) {
+            const selectedTodoUsers = getSelectedCalendarTodoUserKeys();
+            if (selectedTodoUsers.length > 0) {
                 projectList.forEach((project) => {
-                    getProjectTodoItems(project.name, { user: todoUserKey }).forEach((item) => {
-                        const dateValue = new Date(`${item.dateValue || ''}T00:00:00`);
-                        if (Number.isNaN(dateValue.getTime())) return;
-                        dateValue.setHours(0, 0, 0, 0);
-                        addTodo(dateValue, project.name, {
-                            ...item,
-                            projectColor: getTodoProjectAccentColor(project.name)
+                    selectedTodoUsers.forEach((todoUserKey) => {
+                        getProjectTodoItems(project.name, { user: todoUserKey }).forEach((item) => {
+                            const dateValue = new Date(`${item.dateValue || ''}T00:00:00`);
+                            if (Number.isNaN(dateValue.getTime())) return;
+                            dateValue.setHours(0, 0, 0, 0);
+                            addTodo(dateValue, project.name, {
+                                ...item,
+                                projectColor: getTodoProjectAccentColor(project.name)
+                            });
                         });
                     });
                 });
@@ -19081,7 +19577,7 @@ function getWeatherIcon(weatherCode) {
             throw new Error('A data escolhida nao existe nas colunas da timeline.');
         }
 
-        const userKey = getCalendarTodoUserKey({ user: options?.userKey || '' });
+        const userKey = getCalendarTodoUserKey({ user: options?.userKey || getCalendarTodoWriteUserKey() || '' });
         const targetCol = Number(targetDateColumn.originalIndex);
         const targetItems = getProjectTodoItems(projectName, { dateColumnIndex: targetCol, user: userKey });
         const targetSlots = getTodoProjectTaskSlots(project, userKey);
@@ -19428,14 +19924,26 @@ function getWeatherIcon(weatherCode) {
     function createCalendarTodoCard(item, dateKey) {
         const card = document.createElement('div');
         const projectColor = normalizeHexColorInput(item.projectColor || getTodoProjectAccentColor(item.projectName) || TODO_DEFAULT_COLOR) || TODO_DEFAULT_COLOR;
+        const itemUserKey = normalizeTodoUserKey(item.user || '');
+        const loggedUserKey = normalizeTodoUserKey(calendarTodoState.userKey || googleUserProfile.localPart || '');
+        const isOtherUserTodo = !!itemUserKey && !!loggedUserKey && itemUserKey !== loggedUserKey;
+        const borderColor = isOtherUserTodo
+            ? (normalizeHexColorInput(shiftHue(projectColor, -180)) || projectColor)
+            : projectColor;
         card.className = 'cal-todo-card';
         if (item.done) {
             card.classList.add('is-done');
         }
+        if (isOtherUserTodo) {
+            card.classList.add('is-other-user');
+            card.style.setProperty('--cal-todo-owner-border', borderColor);
+        }
         card.style.setProperty('--cal-todo-color', projectColor);
         card.style.setProperty('--cal-todo-bg', hexToRgba(projectColor, 0.24));
-        card.style.setProperty('--cal-todo-border', hexToRgba(projectColor, 0.42));
-        card.title = `${getTodoDisplayProjectName(item.projectName)}: ${item.text}`;
+        card.style.setProperty('--cal-todo-border', hexToRgba(borderColor, isOtherUserTodo ? 0.9 : 0.42));
+        card.title = itemUserKey
+            ? `${getTodoDisplayProjectName(item.projectName)} • ${formatCalendarTodoUserLabel(itemUserKey)}: ${item.text}`
+            : `${getTodoDisplayProjectName(item.projectName)}: ${item.text}`;
 
         const main = document.createElement('div');
         main.className = 'cal-todo-main';
@@ -19465,6 +19973,13 @@ function getWeatherIcon(weatherCode) {
 
         main.appendChild(checkbox);
         main.appendChild(textLabel);
+        if (itemUserKey && getSelectedCalendarTodoUserKeys().length > 1) {
+            const userBadge = document.createElement('span');
+            userBadge.className = 'cal-todo-user-badge';
+            userBadge.title = `To Do de ${formatCalendarTodoUserLabel(itemUserKey)}`;
+            userBadge.textContent = getCalendarTodoUserInitials(itemUserKey);
+            main.appendChild(userBadge);
+        }
         card.appendChild(main);
         card.addEventListener('click', (event) => {
             event.stopPropagation();
@@ -19483,6 +19998,7 @@ function getWeatherIcon(weatherCode) {
 
         const specialName = calendarData.specialProjectName || (calendarData.projects.length > 0 ? calendarData.projects[0].name : null);
         title.textContent = `${MONTH_NAMES[calendarMonth]} ${calendarYear}`;
+        updateCalendarTodoUserButton();
         grid.innerHTML = '';
 
         const today = new Date();
@@ -19799,6 +20315,7 @@ function getWeatherIcon(weatherCode) {
         hideCalendarTooltip();
         hideCalendarDayContextMenu();
         closeCalendarTodoComposer();
+        hideCalendarTodoUserMenu();
         clearCalendarTodoDropHints();
         calendarTodoState.dragItem = null;
         calendarTodoState.dragMode = 'move';
